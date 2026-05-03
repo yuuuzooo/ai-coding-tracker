@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-05-04 (2)
+### 変更内容
+- `LaunchAgents/com.zidai.claude-pjx.plist` テンプレートを追加（macOS 常駐用）
+- README の LaunchAgent セクションをテンプレート参照ベースに書き換え（コピー → パス調整 → load の3手順）
+- `~/Library/LaunchAgents/com.zidai.claude-pjx.plist` を実体化して `launchctl load`、ポート 5180 で常駐確認済み
+- 効果: Claude Code セッション終了後・Mac 再起動後も `http://127.0.0.1:5180/` のブックマークから即アクセス可能
+
 ## 2026-05-04
 ### 依頼内容
 ClaudeCode / Codex CLI で開始した開発プロジェクトを自動でリスト化し、最終やり取りと「次にやること」を一覧管理できるローカルツールを作りたい。途中で放置してしまった企画も後から再開しやすくする。

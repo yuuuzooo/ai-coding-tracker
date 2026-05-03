@@ -47,40 +47,43 @@ npm run scan
 
 書き込み系は `127.0.0.1` からのみ受理。
 
-## LaunchAgent で常駐させる（任意）
+## LaunchAgent で常駐させる（macOS）
 
-`~/Library/LaunchAgents/com.zidai.claude-pjx.plist` を作成:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key><string>com.zidai.claude-pjx</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/bin/zsh</string>
-    <string>-lc</string>
-    <string>cd "$HOME/Desktop/000_Claude Code/dev/claude-pjx" && /usr/local/bin/npm run dev</string>
-  </array>
-  <key>RunAtLoad</key><true/>
-  <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>/tmp/claude-pjx.out.log</string>
-  <key>StandardErrorPath</key><string>/tmp/claude-pjx.err.log</string>
-</dict>
-</plist>
-```
+ブラウザのブックマークから常時アクセスできるようにする設定。再起動しても自動で起動、プロセスが死んでも自動で再起動します。
 
 ```bash
+# 1. テンプレートをコピー
+cp LaunchAgents/com.zidai.claude-pjx.plist ~/Library/LaunchAgents/
+
+# 2. 自分の環境に合わせてパスを書き換え
+#    - ProgramArguments の node / npm-cli.js
+#      → `which node` と `which npm` で確認
+#    - WorkingDirectory: claude-pjx をクローンしたディレクトリ
+#    - EnvironmentVariables.HOME: 自分のホームディレクトリ
+vi ~/Library/LaunchAgents/com.zidai.claude-pjx.plist
+
+# 3. ロード（即起動 + ログイン時自動起動が有効になる）
 launchctl load ~/Library/LaunchAgents/com.zidai.claude-pjx.plist
+
+# 状態確認
+launchctl list | grep claude-pjx
+lsof -nP -iTCP:5180 -sTCP:LISTEN
+
+# 停止
+launchctl unload ~/Library/LaunchAgents/com.zidai.claude-pjx.plist
+
+# ログ
+tail -f /tmp/claude-pjx.log /tmp/claude-pjx.error.log
 ```
 
-`/usr/local/bin/npm` のパスは `which npm` で確認して書き換えること。
+これで http://127.0.0.1:5180/ がいつでもブラウザのブックマークからアクセス可能になります。
 
 ## ファイル構成
 
 ```
 claude-pjx/
+├── LaunchAgents/
+│   └── com.zidai.claude-pjx.plist  # macOS 常駐用テンプレート
 ├── server/
 │   ├── api.ts          # Vite middleware が呼ぶ API ハンドラ
 │   ├── scanner.ts      # ~/.claude/projects と ~/.codex を走査
