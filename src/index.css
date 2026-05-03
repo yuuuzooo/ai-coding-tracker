@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Light theme — warm cream / intelligent */
+:root {
+  --canvas: 250 247 238;       /* #FAF7EE — warm cream page bg */
+  --surface: 255 253 248;      /* #FFFDF8 — sidebar / detail panel */
+  --elev: 244 239 226;         /* #F4EFE2 — cards / inputs */
+  --line: 226 219 203;         /* #E2DBCB — subtle warm border */
+  --fg-strong: 23 26 35;       /* #171A23 — headings */
+  --fg: 51 56 71;              /* #333847 — body */
+  --fg-muted: 96 102 122;      /* #60667A — secondary */
+  --fg-subtle: 138 142 158;    /* #8A8E9E — tertiary */
+  --fg-faint: 184 178 162;     /* #B8B2A2 — warm faint */
+  color-scheme: light;
+}
+
+/* Dark theme — midnight */
+.dark {
+  --canvas: 5 8 22;            /* #050816 */
+  --surface: 11 17 32;         /* #0B1120 */
+  --elev: 15 23 42;            /* #0F172A */
+  --line: 30 41 59;            /* #1E293B */
+  --fg-strong: 241 245 249;    /* #F1F5F9 */
+  --fg: 203 213 225;           /* #CBD5E1 */
+  --fg-muted: 148 163 184;     /* #94A3B8 */
+  --fg-subtle: 100 116 139;    /* #64748B */
+  --fg-faint: 71 85 105;       /* #475569 */
+  color-scheme: dark;
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: rgb(var(--canvas));
+  color: rgb(var(--fg));
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-feature-settings: "palt" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+/* Custom scrollbars */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(var(--fg-faint) / 0.4);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--fg-faint) / 0.7);
+  background-clip: padding-box;
+}
+
+/* Subtle row hover — works in both modes */
+.row-hover:hover { background: rgb(99 102 241 / 0.08); }
+.dark .row-hover:hover { background: rgb(99 102 241 / 0.06); }
+
+/* Toast slide-in */
+@keyframes toast-in {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-toast-in { animation: toast-in 180ms ease-out; }
