@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      name: 'claude-pjx-api',
+      name: 'ai-coding-tracker-api',
       configureServer(server) {
         server.middlewares.use(async (req, res, next) => {
           const handled = await handle(req, res);

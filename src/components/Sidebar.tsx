@@ -69,7 +69,7 @@ export function Sidebar() {
     <aside className="w-72 shrink-0 bg-surface border-r border-line flex flex-col h-full overflow-hidden">
       <div className="px-4 py-3 border-b border-line flex items-center gap-1.5">
         <Sparkles size={16} className="text-indigo-500 dark:text-indigo-400" />
-        <div className="font-semibold tracking-tight text-fg-strong">claude-pjx</div>
+        <div className="font-semibold tracking-tight text-fg-strong">AI Coding Tracker</div>
         <div className="ml-auto flex items-center gap-0.5">
           <button
             onClick={toggleTheme}

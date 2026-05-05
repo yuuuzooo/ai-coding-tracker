@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 export type Theme = 'light' | 'dark';
 
-const STORAGE_KEY = 'claude-pjx:theme';
+const STORAGE_KEY = 'ai-coding-tracker:theme';
 
 function getInitialTheme(): Theme {
   if (typeof window === 'undefined') return 'dark';

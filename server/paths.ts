@@ -9,6 +9,6 @@ export const CODEX_SESSIONS_DIR = path.join(CODEX_DIR, 'sessions');
 export const CODEX_SESSION_INDEX = path.join(CODEX_DIR, 'session_index.jsonl');
 export const CODEX_HISTORY = path.join(CODEX_DIR, 'history.jsonl');
 
-export const PJX_DIR = path.join(HOME, '.claude-pjx');
+export const PJX_DIR = path.join(HOME, '.ai-coding-tracker');
 export const INDEX_FILE = path.join(PJX_DIR, 'index.json');
 export const OVERRIDES_FILE = path.join(PJX_DIR, 'overrides.json');

@@ -1,4 +1,4 @@
-# claude-pjx
+# AI Coding Tracker
 
 ClaudeCode と Codex CLI で開始した開発プロジェクトを自動でリスト化し、最後のやり取りと「次にやること」を一画面で管理するローカル Web アプリ。
 
@@ -10,19 +10,19 @@ ClaudeCode と Codex CLI で開始した開発プロジェクトを自動でリ�
 - ステータス管理（active / paused / abandoned / done / idea）
 - 「次にやること」の手動メモ、自由メモ、エイリアス、非表示トグル
 - ステータス・ソース・全文検索でフィルタ
-- 編集内容は `~/.claude-pjx/overrides.json` に永続化（再スキャンで上書きされない）
+- 編集内容は `~/.ai-coding-tracker/overrides.json` に永続化（再スキャンで上書きされない）
 
 ## 配置
 
 | パス | 用途 |
 | --- | --- |
-| `~/.claude-pjx/index.json` | スキャン結果（自動生成） |
-| `~/.claude-pjx/overrides.json` | ユーザー編集（ステータス・メモ等） |
+| `~/.ai-coding-tracker/index.json` | スキャン結果（自動生成） |
+| `~/.ai-coding-tracker/overrides.json` | ユーザー編集（ステータス・メモ等） |
 
 ## 使い方
 
 ```bash
-cd "~/Desktop/000_Claude Code/dev/claude-pjx"
+cd "~/Desktop/000_Claude Code/dev/ai-coding-tracker"
 npm install      # 初回のみ
 npm run dev      # http://127.0.0.1:5180/
 ```
@@ -53,27 +53,27 @@ npm run scan
 
 ```bash
 # 1. テンプレートをコピー
-cp LaunchAgents/com.zidai.claude-pjx.plist ~/Library/LaunchAgents/
+cp LaunchAgents/com.zidai.ai-coding-tracker.plist ~/Library/LaunchAgents/
 
 # 2. 自分の環境に合わせてパスを書き換え
 #    - ProgramArguments の node / npm-cli.js
 #      → `which node` と `which npm` で確認
-#    - WorkingDirectory: claude-pjx をクローンしたディレクトリ
+#    - WorkingDirectory: ai-coding-tracker をクローンしたディレクトリ
 #    - EnvironmentVariables.HOME: 自分のホームディレクトリ
-vi ~/Library/LaunchAgents/com.zidai.claude-pjx.plist
+vi ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
 
 # 3. ロード（即起動 + ログイン時自動起動が有効になる）
-launchctl load ~/Library/LaunchAgents/com.zidai.claude-pjx.plist
+launchctl load ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
 
 # 状態確認
-launchctl list | grep claude-pjx
+launchctl list | grep ai-coding-tracker
 lsof -nP -iTCP:5180 -sTCP:LISTEN
 
 # 停止
-launchctl unload ~/Library/LaunchAgents/com.zidai.claude-pjx.plist
+launchctl unload ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
 
 # ログ
-tail -f /tmp/claude-pjx.log /tmp/claude-pjx.error.log
+tail -f /tmp/ai-coding-tracker.log /tmp/ai-coding-tracker.error.log
 ```
 
 これで http://127.0.0.1:5180/ がいつでもブラウザのブックマークからアクセス可能になります。
@@ -81,9 +81,9 @@ tail -f /tmp/claude-pjx.log /tmp/claude-pjx.error.log
 ## ファイル構成
 
 ```
-claude-pjx/
+ai-coding-tracker/
 ├── LaunchAgents/
-│   └── com.zidai.claude-pjx.plist  # macOS 常駐用テンプレート
+│   └── com.zidai.ai-coding-tracker.plist  # macOS 常駐用テンプレート
 ├── server/
 │   ├── api.ts          # Vite middleware が呼ぶ API ハンドラ
 │   ├── scanner.ts      # ~/.claude/projects と ~/.codex を走査
