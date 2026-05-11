@@ -367,13 +367,15 @@ async function scanCodexRolloutFile(file: string): Promise<Acc | null> {
       const ts: string = rec?.timestamp ?? '';
       if (!ts) continue;
 
-      // session_meta — extract cwd
+      // session_meta — extract cwd and originator (entrypoint)
       if (rec?.type === 'session_meta' && rec?.payload) {
         const cwd = rec.payload.cwd;
         if (typeof cwd === 'string' && cwd) {
           acc.path = cwd;
           acc.name = path.basename(cwd) || cwd;
         }
+        const originator = typeof rec.payload.originator === 'string' ? rec.payload.originator : '';
+        if (originator) acc.entrypoint_counts[originator] = (acc.entrypoint_counts[originator] ?? 0) + 1;
         if (!acc.first_seen) acc.first_seen = ts;
         continue;
       }
@@ -526,7 +528,6 @@ function pickTopic(acc: Acc): string {
 }
 
 function pickEntrypoint(acc: Acc): 'cli' | 'desktop' | 'unknown' {
-  if (acc.source === 'codex') return 'cli';
   let best = '';
   let bestCount = 0;
   for (const [k, v] of Object.entries(acc.entrypoint_counts)) {
@@ -534,6 +535,12 @@ function pickEntrypoint(acc: Acc): 'cli' | 'desktop' | 'unknown' {
       best = k;
       bestCount = v;
     }
+  }
+  if (acc.source === 'codex') {
+    // Codex originator values observed: codex-tui, codex_exec, Codex Desktop, Claude Code
+    if (best === 'Codex Desktop') return 'desktop';
+    if (best === 'codex-tui' || best === 'codex_exec' || best === 'Claude Code') return 'cli';
+    return 'cli'; // default for Codex when originator missing
   }
   if (best === 'cli') return 'cli';
   if (best === 'claude-desktop' || best === 'desktop') return 'desktop';
