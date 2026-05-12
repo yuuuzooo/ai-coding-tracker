@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useStore } from '../store';
+import { useStore, selectVisibleProjects } from '../store';
 import type { Priority, ProjectStatus } from '../types';
 
 const STATUS_BY_KEY: Record<string, ProjectStatus> = {
@@ -22,36 +22,6 @@ function isTextInput(el: EventTarget | null): boolean {
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
   if (el.isContentEditable) return true;
   return false;
-}
-
-function getVisibleProjects() {
-  const s = useStore.getState();
-  const { index, overrides, search, statusFilter, priorityFilter, sourceFilter, entrypointFilter, showHidden } = s;
-  if (!index) return [];
-  const q = search.trim().toLowerCase();
-  return index.projects.filter((p) => {
-    const ov = overrides[p.id];
-    if (!showHidden && ov?.hidden) return false;
-    if (sourceFilter !== 'all' && p.source !== sourceFilter) return false;
-    if (entrypointFilter !== 'all' && p.entrypoint !== entrypointFilter) return false;
-    if (priorityFilter !== 'all') {
-      const pri = ov?.priority;
-      if (priorityFilter === 'none') {
-        if (pri) return false;
-      } else if (pri !== priorityFilter) return false;
-    }
-    const status = ov?.status ?? 'active';
-    if (statusFilter === 'all') {
-      if (status === 'abandoned') return false;
-    } else if (status !== statusFilter) {
-      return false;
-    }
-    if (q) {
-      const hay = `${p.name} ${p.path ?? ''} ${p.topic} ${p.last_user_message} ${p.last_assistant_message} ${ov?.note ?? ''} ${ov?.next_action_override ?? ''}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
 }
 
 export function useKeyboardShortcuts() {
@@ -94,7 +64,7 @@ export function useKeyboardShortcuts() {
       }
 
       const s = useStore.getState();
-      const projects = getVisibleProjects();
+      const projects = selectVisibleProjects(s);
       const currentIdx = s.selectedId ? projects.findIndex((p) => p.id === s.selectedId) : -1;
 
       // j / ArrowDown

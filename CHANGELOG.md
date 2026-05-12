@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## 2026-05-13
+### 依頼内容
+Codex CLI でコードレビューしてもらい、Critical / Important の指摘を機能影響を出さずに直す。
+
+### 変更内容
+- 🔴 **`overrides.json` 破損保護**（`server/overrides.ts`）
+  - parse 失敗時に `{}` を返さず `OverridesCorruptError` を throw。書き込み系がデータロスを起こさなくなった
+  - 破損ファイルは `overrides.json.corrupt.<ISO timestamp>` に自動退避
+  - API 層で 500 + `{error, backup}` を返却
+- 🟡 **API ハードニング**（`server/api.ts`）
+  - body size 上限 64KB、超過時 413 `payload too large`
+  - `Origin` ヘッダがある場合のみ `127.0.0.1` / `localhost` を許可（CSRF 対策）。`curl` 等 Origin 無しのリクエストは従来通り通る
+  - 書き込み系を `guardWrite()` に集約
+  - 500 エラーメッセージから内部詳細を除き汎用化、`SyntaxError` は 400、`PayloadTooLargeError` は 413 に分離
+- 🟡 **scanner**（`server/scanner.ts`）
+  - セッション内で `cwd` が変わった場合、**最頻 cwd** を採用（`cwd_counts` 集計）。長セッション/途中 `cd` での誤分類対策
+  - `~/.claude/projects` 配下と Codex sessions 走査で `lstat()` + Dirent `isSymbolicLink()` チェックを追加し symlink ディレクトリ/ファイルを skip
+- 🟡 **フィルタロジック共通化**
+  - `src/store.ts` に `selectVisibleProjects()` を追加
+  - `ProjectList.tsx` と `useKeyboardShortcuts.ts` の重複ロジックを削除し、`j/k` 移動と一覧表示が常に同じ集合を見るように
+  - `useKeyboardShortcuts` 側の検索が `displayName / alias` を含むように（仕様統一）
+- 🟢 README 更新（`README.md`）
+  - 「cwd 単位で集約」 → 「1 セッション = 1 行」に修正（実装に合致）
+  - Codex のソースを `session_index.jsonl + history.jsonl` → `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` に更新
+  - 注意セクションに最頻 cwd 採用を明記
+
+### 動作確認
+- `npx tsc --noEmit` 型エラーなし
+- LaunchAgent 再起動 → port 5180 LISTEN 確認
+- `GET /api/index` 518 プロジェクト取得（rename 前と同一）
+- `POST /api/rescan` Origin なし: 200 / Origin `evil.example.com`: 403 / Origin `127.0.0.1:5180`: 200
+- `POST /api/overrides/bulk` 78KB body: 413 `payload too large` / 空 body: 200
+- 破損 `overrides.json` を投入すると `OverridesCorruptError` + `.corrupt.<ts>` への退避を確認
+
 ## 2026-05-05
 ### 依頼内容
 ツール名を「claude-pjx」から、Claude Code と Codex の両方を扱う実体に合致した万人にわかりやすい名前に変更したい。

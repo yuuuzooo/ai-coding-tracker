@@ -8,11 +8,34 @@ import {
   upsertOverride,
   bulkUpsertOverrides,
   deleteOverride,
+  OverridesCorruptError,
 } from './overrides.js';
+
+const MAX_BODY_BYTES = 64 * 1024;
 
 function isLocal(req: IncomingMessage): boolean {
   const addr = req.socket.remoteAddress ?? '';
   return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1';
+}
+
+function isAllowedOrigin(req: IncomingMessage): boolean {
+  const origin = req.headers.origin;
+  // Origin is absent for curl / native fetch from non-browser clients — allow when local.
+  if (!origin) return true;
+  try {
+    const u = new URL(origin);
+    return (u.hostname === '127.0.0.1' || u.hostname === 'localhost') &&
+      (u.protocol === 'http:' || u.protocol === 'https:');
+  } catch {
+    return false;
+  }
+}
+
+class PayloadTooLargeError extends Error {
+  constructor() {
+    super('payload too large');
+    this.name = 'PayloadTooLargeError';
+  }
 }
 
 function send(res: ServerResponse, status: number, body: unknown): void {
@@ -24,8 +47,23 @@ function send(res: ServerResponse, status: number, body: unknown): void {
 async function readJson(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on('data', (c: Buffer) => chunks.push(c));
+    let size = 0;
+    let rejected = false;
+    req.on('data', (c: Buffer) => {
+      if (rejected) return;
+      size += c.length;
+      if (size > MAX_BODY_BYTES) {
+        rejected = true;
+        // Stop accumulating but keep draining so the handler can send 413.
+        return;
+      }
+      chunks.push(c);
+    });
     req.on('end', () => {
+      if (rejected) {
+        reject(new PayloadTooLargeError());
+        return;
+      }
       const raw = Buffer.concat(chunks).toString('utf8');
       if (!raw) return resolve({});
       try {
@@ -34,8 +72,22 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
         reject(e);
       }
     });
-    req.on('error', reject);
+    req.on('error', (e) => {
+      reject(e);
+    });
   });
+}
+
+function guardWrite(req: IncomingMessage, res: ServerResponse): boolean {
+  if (!isLocal(req)) {
+    send(res, 403, { error: 'forbidden' });
+    return false;
+  }
+  if (!isAllowedOrigin(req)) {
+    send(res, 403, { error: 'forbidden origin' });
+    return false;
+  }
+  return true;
 }
 
 export async function handle(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
@@ -60,20 +112,14 @@ export async function handle(req: IncomingMessage, res: ServerResponse): Promise
     }
 
     if (url === '/api/rescan' && method === 'POST') {
-      if (!isLocal(req)) {
-        send(res, 403, { error: 'forbidden' });
-        return true;
-      }
+      if (!guardWrite(req, res)) return true;
       const file = await scan();
       send(res, 200, { generated_at: file.generated_at, count: file.projects.length });
       return true;
     }
 
     if (url === '/api/overrides/bulk' && method === 'POST') {
-      if (!isLocal(req)) {
-        send(res, 403, { error: 'forbidden' });
-        return true;
-      }
+      if (!guardWrite(req, res)) return true;
       const body = (await readJson(req)) as any;
       const updates = Array.isArray(body?.updates) ? body.updates : [];
       const result = await bulkUpsertOverrides(updates);
@@ -89,10 +135,7 @@ export async function handle(req: IncomingMessage, res: ServerResponse): Promise
     const m = url.match(/^\/api\/overrides\/([A-Za-z0-9_-]+)$/);
     if (m) {
       const id = m[1];
-      if (!isLocal(req)) {
-        send(res, 403, { error: 'forbidden' });
-        return true;
-      }
+      if (!guardWrite(req, res)) return true;
       if (method === 'PUT') {
         const body = await readJson(req);
         const result = await upsertOverride(id, body);
@@ -114,7 +157,22 @@ export async function handle(req: IncomingMessage, res: ServerResponse): Promise
     return true;
   } catch (err) {
     console.error('[api] error', err);
-    send(res, 500, { error: (err as Error).message });
+    if (err instanceof PayloadTooLargeError) {
+      send(res, 413, { error: 'payload too large' });
+      return true;
+    }
+    if (err instanceof OverridesCorruptError) {
+      send(res, 500, {
+        error: 'overrides.json is corrupted; refusing to write to avoid data loss',
+        backup: err.backupPath,
+      });
+      return true;
+    }
+    if (err instanceof SyntaxError) {
+      send(res, 400, { error: 'invalid JSON body' });
+      return true;
+    }
+    send(res, 500, { error: 'internal server error' });
     return true;
   }
 }

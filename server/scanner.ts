@@ -79,6 +79,7 @@ type Acc = {
   path: string | null;
   key: string;
   entrypoint_counts: Record<string, number>;
+  cwd_counts: Record<string, number>;
   sessions: Map<string, SessionInfo>;
   first_seen: string;
   last_active: string;
@@ -97,6 +98,7 @@ function newAcc(source: Source, name: string, p: string | null, key?: string): A
     path: p,
     key: key ?? name,
     entrypoint_counts: {},
+    cwd_counts: {},
     sessions: new Map(),
     first_seen: '',
     last_active: '',
@@ -243,12 +245,9 @@ async function scanClaudeCodeSessionFile(file: string, dirName: string): Promise
       const ts: string = rec?.timestamp ?? '';
       const sessionId: string = rec?.sessionId ?? sessionIdFromFile;
       if (!ts) continue;
-      if (!acc.path) {
-        const cwd = rec?.cwd;
-        if (typeof cwd === 'string' && cwd) {
-          acc.path = cwd;
-          acc.name = path.basename(cwd) || cwd;
-        }
+      const cwd = rec?.cwd;
+      if (typeof cwd === 'string' && cwd) {
+        acc.cwd_counts[cwd] = (acc.cwd_counts[cwd] ?? 0) + 1;
       }
       const ep = typeof rec?.entrypoint === 'string' ? rec.entrypoint : '';
       if (ep) acc.entrypoint_counts[ep] = (acc.entrypoint_counts[ep] ?? 0) + 1;
@@ -280,7 +279,24 @@ async function scanClaudeCodeSessionFile(file: string, dirName: string): Promise
     return null;
   }
   if (!saw) return null;
+  const dominantCwd = pickDominantCwd(acc.cwd_counts);
+  if (dominantCwd) {
+    acc.path = dominantCwd;
+    acc.name = path.basename(dominantCwd) || dominantCwd;
+  }
   return acc;
+}
+
+function pickDominantCwd(counts: Record<string, number>): string | null {
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [cwd, n] of Object.entries(counts)) {
+    if (n > bestCount) {
+      best = cwd;
+      bestCount = n;
+    }
+  }
+  return best;
 }
 
 async function scanClaudeCode(): Promise<Acc[]> {
@@ -291,14 +307,19 @@ async function scanClaudeCode(): Promise<Acc[]> {
     const full = path.join(CLAUDE_PROJECTS_DIR, dir);
     let stat: fs.Stats;
     try {
-      stat = await fsp.stat(full);
+      stat = await fsp.lstat(full);
     } catch {
       continue;
     }
+    if (stat.isSymbolicLink()) {
+      console.warn(`[scanner] skipping symlink: ${full}`);
+      continue;
+    }
     if (!stat.isDirectory()) continue;
-    const files = (await fsp.readdir(full)).filter((f) => f.endsWith('.jsonl'));
+    const entries = await fsp.readdir(full, { withFileTypes: true });
+    const files = entries.filter((e) => !e.isSymbolicLink() && e.name.endsWith('.jsonl'));
     for (const f of files) {
-      const file = path.join(full, f);
+      const file = path.join(full, f.name);
       const acc = await scanClaudeCodeSessionFile(file, dir);
       if (acc) out.push(acc);
     }
@@ -432,6 +453,7 @@ async function walkRolloutFiles(dir: string): Promise<string[]> {
     return out;
   }
   for (const e of entries) {
+    if (e.isSymbolicLink()) continue;
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
       const nested = await walkRolloutFiles(full);

@@ -4,12 +4,12 @@ ClaudeCode と Codex CLI で開始した開発プロジェクトを自動でリ�
 
 ## できること
 
-- `~/.claude/projects/*/<uuid>.jsonl` を走査し、`cwd` 単位でプロジェクトに集約
-- `~/.codex/session_index.jsonl` + `history.jsonl` から Codex のスレッドも取り込み
-- 最終アクティブ日時、最終ユーザー発言、最終アシスタント発言を自動抽出
+- `~/.claude/projects/*/<sessionId>.jsonl` を走査し、**1 セッション = 1 行**で集約（同一 cwd の別セッションは別行として扱う）
+- `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` から Codex セッションのユーザー/アシスタント発言も取り込み（`~/.codex/session_index.jsonl` がある場合は thread name を補完）
+- 最終アクティブ日時、最終ユーザー発言、最終アシスタント発言、最頻 cwd を自動抽出
 - ステータス管理（active / paused / abandoned / done / idea）
-- 「次にやること」の手動メモ、自由メモ、エイリアス、非表示トグル
-- ステータス・ソース・全文検索でフィルタ
+- 「次にやること」の手動メモ、自由メモ、エイリアス、非表示トグル、A/B/C 優先度
+- ステータス・優先度・ソース・起動方法・全文検索でフィルタ、チェックボックスによる一括処理
 - 編集内容は `~/.ai-coding-tracker/overrides.json` に永続化（再スキャンで上書きされない）
 
 ## 配置
@@ -106,5 +106,6 @@ ai-coding-tracker/
 
 ## 注意
 
-- Codex の transcript は `~/.codex/history.jsonl` にユーザー入力のみ保存されるため、`last_assistant_message` は空。詳細パネルに注記表示。
-- Claude Code の "user" メッセージにはツール結果も含まれるため、`last_user_message` がツール出力になることがある（仕様）。「次にやること」は基本的に `last_assistant_message` を見る。
+- Codex の transcript は `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` からアシスタント発言も含めて取得する。`history.jsonl`（ユーザー入力のみ）は使っていない。rollout が無いセッションでは `last_assistant_message` が空になる場合がある。
+- Claude Code の "user" メッセージにはツール結果も含まれるため、scanner 側で `<local-command-stdout>` / `<scheduled-task>` 等の自動挿入テキストはフィルタしている。「次にやること」は基本的に `last_assistant_message` を見る。
+- セッション内で `cwd` が変わった場合は **最頻 cwd** を採用する（途中で `cd` した場合の誤分類対策）。

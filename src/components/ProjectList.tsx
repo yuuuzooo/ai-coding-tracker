@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { differenceInCalendarDays, formatDistanceToNow, parseISO } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { EyeOff, MonitorDot, TerminalSquare } from 'lucide-react';
-import { useStore, getProjectStatus, getDisplayName } from '../store';
+import { useStore, getProjectStatus, getDisplayName, selectVisibleProjects } from '../store';
 import type { ScannedProject, ProjectStatus, OverridesFile } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
@@ -55,29 +55,15 @@ export function ProjectList() {
 
   const filtered = useMemo(() => {
     if (!index) return [] as ScannedProject[];
-    const q = search.trim().toLowerCase();
-    let arr = index.projects.filter((p) => {
-      const ov = overrides[p.id];
-      if (!showHidden && ov?.hidden) return false;
-      if (sourceFilter !== 'all' && p.source !== sourceFilter) return false;
-      if (entrypointFilter !== 'all' && p.entrypoint !== entrypointFilter) return false;
-      if (priorityFilter !== 'all') {
-        const pri = ov?.priority;
-        if (priorityFilter === 'none') {
-          if (pri) return false;
-        } else if (pri !== priorityFilter) return false;
-      }
-      const status = getProjectStatus(p, overrides);
-      if (statusFilter === 'all') {
-        if (status === 'abandoned') return false;
-      } else if (status !== statusFilter) {
-        return false;
-      }
-      if (q) {
-        const hay = `${getDisplayName(p, overrides)} ${p.name} ${p.path ?? ''} ${p.topic} ${p.last_user_message} ${p.last_assistant_message} ${ov?.note ?? ''} ${ov?.next_action_override ?? ''}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
+    let arr = selectVisibleProjects({
+      index,
+      overrides,
+      search,
+      statusFilter,
+      priorityFilter,
+      sourceFilter,
+      entrypointFilter,
+      showHidden,
     });
     if (sortMode === 'last_active') {
       arr = arr.sort((a, b) => (a.last_active < b.last_active ? 1 : -1));

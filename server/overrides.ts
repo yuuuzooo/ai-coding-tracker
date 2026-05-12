@@ -15,15 +15,46 @@ function withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
   return next;
 }
 
+export class OverridesCorruptError extends Error {
+  constructor(
+    message: string,
+    public readonly backupPath: string | null,
+  ) {
+    super(message);
+    this.name = 'OverridesCorruptError';
+  }
+}
+
+async function quarantineCorruptFile(): Promise<string | null> {
+  try {
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    const backup = path.join(PJX_DIR, `overrides.json.corrupt.${ts}`);
+    await fsp.rename(OVERRIDES_FILE, backup);
+    return backup;
+  } catch (err) {
+    console.error('[overrides] failed to quarantine corrupt file', err);
+    return null;
+  }
+}
+
 export async function readOverrides(): Promise<OverridesFile> {
   if (!fs.existsSync(OVERRIDES_FILE)) return {};
+  const raw = await fsp.readFile(OVERRIDES_FILE, 'utf8');
+  let parsed: unknown;
   try {
-    const raw = await fsp.readFile(OVERRIDES_FILE, 'utf8');
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? (parsed as OverridesFile) : {};
-  } catch {
-    return {};
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    const backup = await quarantineCorruptFile();
+    throw new OverridesCorruptError(
+      `overrides.json is not valid JSON: ${(err as Error).message}`,
+      backup,
+    );
   }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    const backup = await quarantineCorruptFile();
+    throw new OverridesCorruptError('overrides.json is not a JSON object', backup);
+  }
+  return parsed as OverridesFile;
 }
 
 async function writeOverrides(data: OverridesFile): Promise<void> {

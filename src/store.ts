@@ -168,3 +168,44 @@ export function getSubName(project: ScannedProject, overrides: OverridesFile): s
 export function getStatusLine(project: ScannedProject): string {
   return project.current_status || '';
 }
+
+export type VisibleProjectsInputs = Pick<
+  State,
+  | 'index'
+  | 'overrides'
+  | 'search'
+  | 'statusFilter'
+  | 'priorityFilter'
+  | 'sourceFilter'
+  | 'entrypointFilter'
+  | 'showHidden'
+>;
+
+export function selectVisibleProjects(s: VisibleProjectsInputs): ScannedProject[] {
+  if (!s.index) return [];
+  const q = s.search.trim().toLowerCase();
+  return s.index.projects.filter((p) => {
+    const ov = s.overrides[p.id];
+    if (!s.showHidden && ov?.hidden) return false;
+    if (s.sourceFilter !== 'all' && p.source !== s.sourceFilter) return false;
+    if (s.entrypointFilter !== 'all' && p.entrypoint !== s.entrypointFilter) return false;
+    if (s.priorityFilter !== 'all') {
+      const pri = ov?.priority;
+      if (s.priorityFilter === 'none') {
+        if (pri) return false;
+      } else if (pri !== s.priorityFilter) return false;
+    }
+    const status = getProjectStatus(p, s.overrides);
+    if (s.statusFilter === 'all') {
+      if (status === 'abandoned') return false;
+    } else if (status !== s.statusFilter) {
+      return false;
+    }
+    if (q) {
+      const display = getDisplayName(p, s.overrides);
+      const hay = `${display} ${p.name} ${p.path ?? ''} ${p.topic} ${p.last_user_message} ${p.last_assistant_message} ${ov?.note ?? ''} ${ov?.next_action_override ?? ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
