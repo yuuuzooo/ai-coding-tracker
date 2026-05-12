@@ -1,111 +1,217 @@
 # AI Coding Tracker
 
-ClaudeCode と Codex CLI で開始した開発プロジェクトを自動でリスト化し、最後のやり取りと「次にやること」を一画面で管理するローカル Web アプリ。
+A local-first web dashboard that auto-discovers your **Claude Code** and **Codex CLI** sessions, surfaces the last interaction and a "what's next" memo, and helps you revive abandoned projects.
 
-## できること
+> Read-only on your session history. The only files this tool writes to are inside `~/.ai-coding-tracker/`.
 
-- `~/.claude/projects/*/<sessionId>.jsonl` を走査し、**1 セッション = 1 行**で集約（同一 cwd の別セッションは別行として扱う）
-- `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` から Codex セッションのユーザー/アシスタント発言も取り込み（`~/.codex/session_index.jsonl` がある場合は thread name を補完）
-- 最終アクティブ日時、最終ユーザー発言、最終アシスタント発言、最頻 cwd を自動抽出
-- ステータス管理（active / paused / abandoned / done / idea）
-- 「次にやること」の手動メモ、自由メモ、エイリアス、非表示トグル、A/B/C 優先度
-- ステータス・優先度・ソース・起動方法・全文検索でフィルタ、チェックボックスによる一括処理
-- 編集内容は `~/.ai-coding-tracker/overrides.json` に永続化（再スキャンで上書きされない）
+[日本語版はこちら](#日本語)
 
-## 配置
+---
 
-| パス | 用途 |
-| --- | --- |
-| `~/.ai-coding-tracker/index.json` | スキャン結果（自動生成） |
-| `~/.ai-coding-tracker/overrides.json` | ユーザー編集（ステータス・メモ等） |
+## Features
 
-## 使い方
+- Walks `~/.claude/projects/*/<sessionId>.jsonl` and `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` and groups them **one project row per session**.
+- Auto-extracts a human-readable project label, the latest exchange (user + assistant), the most-recent working directory, and detects whether the session came from the CLI or the Desktop app.
+- Status pipeline: **active / paused / abandoned / done / idea**, plus A/B/C priority.
+- Manual notes: "next action" memo, free-form note, alias (display name), hide toggle.
+- Sidebar filters (status / priority / source / entrypoint / search) with live counts.
+- Date buckets in the list view (Today / Yesterday / This week / This month / Last 3 months / Older).
+- Bulk operations via row checkboxes (status / priority / hide) with server-side write locking.
+- Light / dark theme.
+- **English & Japanese UI** — auto-detected from `navigator.language`, toggle in the header.
+- Keyboard shortcuts: `/`, `j/k`, `1-5`, `a/b/c`, `h`, `Esc`.
+- All user edits live in `~/.ai-coding-tracker/overrides.json` and are never overwritten by rescans.
+
+## Requirements
+
+- **Node.js 18.17+**
+- A local install of **Claude Code CLI** and/or **Codex CLI** that writes session history under `$HOME`. Browser-only users of `claude.ai/code` are not supported (history lives in the cloud).
+- macOS / Linux. Windows users are supported via manual `npm run dev` startup — the auto-start templates ship for macOS and Linux only.
+
+## Install
 
 ```bash
-cd "~/Desktop/000_Claude Code/dev/ai-coding-tracker"
-npm install      # 初回のみ
-npm run dev      # http://127.0.0.1:5180/
+git clone https://github.com/yuuuzooo/ai-coding-tracker.git
+cd ai-coding-tracker
+npm install
+npm run dev          # http://127.0.0.1:5180/
 ```
 
-ブラウザで `http://127.0.0.1:5180/` を開く。右上の「再スキャン」で最新状態に更新。
+The server binds to `127.0.0.1` only and writes its data files to `~/.ai-coding-tracker/`.
 
-スキャナー単体実行:
+### One-shot scan from the CLI
 
 ```bash
-npm run scan
+npm run scan         # regenerate ~/.ai-coding-tracker/index.json
 ```
 
-## API（ローカル限定）
+## Configuration (environment variables)
 
-| Method | Path | 用途 |
-| --- | --- | --- |
-| GET | `/api/index` | プロジェクト一覧 |
-| GET | `/api/overrides` | ユーザー編集 |
-| PUT | `/api/overrides/:id` | 編集を保存 |
-| DELETE | `/api/overrides/:id` | 編集を削除 |
-| POST | `/api/rescan` | 即時再スキャン |
+All paths default to `$HOME`-relative locations and can be overridden when sessions live elsewhere (e.g. WSL pointing at the Windows-side `.claude` directory, or a non-standard install).
 
-書き込み系は `127.0.0.1` からのみ受理。
+| Variable | Default | Purpose |
+|---|---|---|
+| `AICT_CLAUDE_PROJECTS_DIR` | `~/.claude/projects` | Claude Code session history |
+| `AICT_CODEX_DIR` | `~/.codex` | Codex CLI root |
+| `AICT_CODEX_SESSIONS_DIR` | `~/.codex/sessions` | Codex rollout files |
+| `AICT_DATA_DIR` | `~/.ai-coding-tracker` | Writable runtime data (cache + your edits) |
 
-## LaunchAgent で常駐させる（macOS）
-
-ブラウザのブックマークから常時アクセスできるようにする設定。再起動しても自動で起動、プロセスが死んでも自動で再起動します。
+Example: WSL user reading Windows-side Claude Code history:
 
 ```bash
-# 1. テンプレートをコピー
-cp LaunchAgents/com.zidai.ai-coding-tracker.plist ~/Library/LaunchAgents/
+AICT_CLAUDE_PROJECTS_DIR=/mnt/c/Users/<you>/.claude/projects npm run dev
+```
 
-# 2. 自分の環境に合わせてパスを書き換え
-#    - ProgramArguments の node / npm-cli.js
-#      → `which node` と `which npm` で確認
-#    - WorkingDirectory: ai-coding-tracker をクローンしたディレクトリ
-#    - EnvironmentVariables.HOME: 自分のホームディレクトリ
+## Local HTTP API
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/index` | Returns the latest scan result |
+| GET | `/api/overrides` | Returns your edits |
+| PUT | `/api/overrides/:id` | Upsert one project's edit |
+| DELETE | `/api/overrides/:id` | Remove one project's edit |
+| POST | `/api/overrides/bulk` | Upsert many at once |
+| POST | `/api/rescan` | Trigger an immediate rescan |
+
+Writes are restricted to `127.0.0.1` and (when the `Origin` header is present) to `http://127.0.0.1` / `http://localhost` origins. Request bodies are capped at 64 KB.
+
+## Running as a background service
+
+### macOS (LaunchAgent)
+
+```bash
+cp LaunchAgents/com.zidai.ai-coding-tracker.plist.example \
+   ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
+
+# Replace every __REPLACE_*__ placeholder with values for your machine
 vi ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
 
-# 3. ロード（即起動 + ログイン時自動起動が有効になる）
 launchctl load ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
 
-# 状態確認
+# Status / port / logs
 launchctl list | grep ai-coding-tracker
 lsof -nP -iTCP:5180 -sTCP:LISTEN
-
-# 停止
-launchctl unload ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
-
-# ログ
 tail -f /tmp/ai-coding-tracker.log /tmp/ai-coding-tracker.error.log
+
+# Stop
+launchctl unload ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
 ```
 
-これで http://127.0.0.1:5180/ がいつでもブラウザのブックマークからアクセス可能になります。
+### Linux (systemd --user)
 
-## ファイル構成
+```bash
+mkdir -p ~/.config/systemd/user
+cp systemd/ai-coding-tracker.service.example \
+   ~/.config/systemd/user/ai-coding-tracker.service
 
-```
-ai-coding-tracker/
-├── LaunchAgents/
-│   └── com.zidai.ai-coding-tracker.plist  # macOS 常駐用テンプレート
-├── server/
-│   ├── api.ts          # Vite middleware が呼ぶ API ハンドラ
-│   ├── scanner.ts      # ~/.claude/projects と ~/.codex を走査
-│   ├── overrides.ts    # overrides.json の atomic R/W
-│   ├── paths.ts
-│   ├── types.ts
-│   └── run-scan.ts     # CLI エントリ
-├── src/
-│   ├── App.tsx
-│   ├── store.ts        # Zustand
-│   ├── api.ts          # fetch ラッパー
-│   ├── types.ts
-│   └── components/
-│       ├── Toolbar.tsx
-│       ├── ProjectList.tsx
-│       ├── ProjectDetail.tsx
-│       └── StatusBadge.tsx
-└── vite.config.ts      # configureServer で API を同居
+# Replace every __REPLACE_*__ placeholder
+$EDITOR ~/.config/systemd/user/ai-coding-tracker.service
+
+systemctl --user daemon-reload
+systemctl --user enable --now ai-coding-tracker.service
+
+# Status / logs
+systemctl --user status ai-coding-tracker
+journalctl --user -u ai-coding-tracker -f
 ```
 
-## 注意
+### Windows
 
-- Codex の transcript は `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` からアシスタント発言も含めて取得する。`history.jsonl`（ユーザー入力のみ）は使っていない。rollout が無いセッションでは `last_assistant_message` が空になる場合がある。
-- Claude Code の "user" メッセージにはツール結果も含まれるため、scanner 側で `<local-command-stdout>` / `<scheduled-task>` 等の自動挿入テキストはフィルタしている。「次にやること」は基本的に `last_assistant_message` を見る。
-- セッション内で `cwd` が変わった場合は **最頻 cwd** を採用する（途中で `cd` した場合の誤分類対策）。
+No template ships yet. Run `npm run dev` manually, or use **Task Scheduler** / **PM2** to keep it alive. PRs welcome.
+
+## Data layout
+
+```
+~/.ai-coding-tracker/
+├── index.json            # Auto-generated scan result
+├── overrides.json        # Your edits (status / notes / aliases)
+└── overrides.json.tmp.*  # Atomic-write scratch files (auto-cleaned)
+```
+
+If `overrides.json` is ever corrupted (manual edit gone wrong, partial sync, etc.), the server quarantines it to `overrides.json.corrupt.<timestamp>` and refuses to write to avoid silently destroying your notes.
+
+## Safety
+
+- The tool **never writes to** `~/.claude/` or `~/.codex/`. All write operations (`writeFile`, `rename`, `mkdir`) target `~/.ai-coding-tracker/` only.
+- No `unlink` / `rm` / `rmdir` / `child_process` calls anywhere in the codebase.
+- Path traversal protection: API id parameters are matched against `^[A-Za-z0-9_-]+$` and never reach `path.join`.
+- Symlinks under the source directories are skipped.
+
+## Known limitations
+
+- **Browser-only Claude (`claude.ai/code`) and Web-only Codex** users have no local session history — the dashboard will be empty.
+- **Devcontainers / Docker / Remote SSH**: history lives on the host. Run the tracker on the same machine your sessions ran on, or mount the history directory.
+- **WSL**: by default reads the Linux-side `$HOME/.claude`. Use `AICT_CLAUDE_PROJECTS_DIR` to point at `/mnt/c/Users/<you>/.claude/projects`.
+- **Codex assistant transcripts** require the modern `~/.codex/sessions/.../rollout-*.jsonl` format. Older Codex versions that only emit `history.jsonl` will show empty assistant excerpts.
+- **The scanner runs in-process** when you start the Vite dev server. The first scan on a large history takes a few seconds; subsequent rescans use the same code path.
+
+## Tech stack
+
+React 18 + TypeScript + Vite 5 + Tailwind CSS + Zustand + lucide-react + date-fns. The API runs as a Vite middleware (`configureServer`) so the whole thing is a single dev-server process.
+
+## Contributing
+
+Bug reports and PRs welcome at https://github.com/yuuuzooo/ai-coding-tracker/issues. The codebase is small (~1.5k LoC) and intentionally framework-light.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+## 日本語
+
+ClaudeCode と Codex CLI で始めた開発セッションを自動でリスト化し、最終やり取りと「次にやること」を一画面で管理するローカル Web アプリです。
+
+### できること
+
+- `~/.claude/projects/*/<sessionId>.jsonl` と `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` を走査し、**1 セッション = 1 行**で集約
+- プロジェクト名・最終やり取り・最頻 cwd・起動経路（CLI/Desktop）を自動抽出
+- ステータス管理（active / paused / abandoned / done / idea）+ A/B/C 優先度
+- 手動メモ（next action / 自由メモ）、エイリアス、非表示トグル
+- サイドバーで複数フィルタと検索、日付バケットでグルーピング
+- 一括処理（チェックボックス選択 → ステータス・優先度・hidden を bulk 反映）
+- ライト / ダークテーマ
+- **英語 / 日本語の UI 切替**（ブラウザ言語で自動判定、ヘッダのトグルで上書き）
+- キーボードショートカット
+- 編集は `~/.ai-coding-tracker/overrides.json` に永続化、再スキャンで上書きされない
+
+### 動作要件
+
+- Node.js 18.17+
+- Claude Code CLI または Codex CLI を $HOME 配下にセッション保存する形で利用していること
+- macOS / Linux 推奨（Windows は手動 `npm run dev` で動作可、常駐テンプレは無し）
+
+### インストールと起動
+
+```bash
+git clone https://github.com/yuuuzooo/ai-coding-tracker.git
+cd ai-coding-tracker
+npm install
+npm run dev    # http://127.0.0.1:5180/
+```
+
+### パス上書き
+
+セッションが標準位置に無い場合は環境変数で上書き可能:
+
+| 変数 | デフォルト | 用途 |
+|---|---|---|
+| `AICT_CLAUDE_PROJECTS_DIR` | `~/.claude/projects` | Claude Code 履歴 |
+| `AICT_CODEX_DIR` | `~/.codex` | Codex CLI ルート |
+| `AICT_CODEX_SESSIONS_DIR` | `~/.codex/sessions` | Codex rollout |
+| `AICT_DATA_DIR` | `~/.ai-coding-tracker` | ツールの書き込み先 |
+
+### LaunchAgent / systemd
+
+`LaunchAgents/com.zidai.ai-coding-tracker.plist.example`（macOS）、`systemd/ai-coding-tracker.service.example`（Linux）をテンプレートとして同梱しています。`__REPLACE_*__` placeholder を自分の環境に書き換えてロードしてください。
+
+### 安全性
+
+- `~/.claude` / `~/.codex` には**一切書き込みません**（読み取り専用）
+- 書き込みは `~/.ai-coding-tracker/` 配下のみ。`unlink` / `rm` / `child_process` の呼び出しはコードベース全体でゼロ
+- 詳細はリポジトリの [Safety セクション](#safety) を参照
+
+### ライセンス
+
+MIT — [LICENSE](LICENSE) を参照

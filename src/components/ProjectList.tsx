@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
-import { differenceInCalendarDays, formatDistanceToNow, parseISO } from 'date-fns';
-import { ja } from 'date-fns/locale';
+import { differenceInCalendarDays, formatDistanceToNow, parseISO, type Locale } from 'date-fns';
+import { enUS, ja } from 'date-fns/locale';
 import { EyeOff, MonitorDot, TerminalSquare } from 'lucide-react';
 import { useStore, getProjectStatus, getDisplayName, selectVisibleProjects } from '../store';
 import type { ScannedProject, ProjectStatus, OverridesFile } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
+import { useT } from '../i18n/useT';
+import type { Strings } from '../i18n/strings';
 
 const STATUS_RANK: Record<ProjectStatus, number> = {
   active: 0,
@@ -25,17 +27,43 @@ const STATUS_STRIPE: Record<ProjectStatus, string> = {
   idea: 'border-l-violet-400/80',
 };
 
-function bucketKey(iso: string): string {
+type BucketKey = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'last3Months' | 'older';
+
+function bucketKey(iso: string): BucketKey {
   const days = differenceInCalendarDays(new Date(), parseISO(iso));
-  if (days <= 0) return '今日';
-  if (days === 1) return '昨日';
-  if (days < 7) return '今週';
-  if (days < 30) return '今月';
-  if (days < 90) return '3ヶ月以内';
-  return 'それ以前';
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return 'thisWeek';
+  if (days < 30) return 'thisMonth';
+  if (days < 90) return 'last3Months';
+  return 'older';
 }
 
-const BUCKET_ORDER = ['今日', '昨日', '今週', '今月', '3ヶ月以内', 'それ以前'];
+const BUCKET_ORDER: BucketKey[] = [
+  'today',
+  'yesterday',
+  'thisWeek',
+  'thisMonth',
+  'last3Months',
+  'older',
+];
+
+function bucketLabel(t: Strings, k: BucketKey): string {
+  switch (k) {
+    case 'today':
+      return t.bucketToday;
+    case 'yesterday':
+      return t.bucketYesterday;
+    case 'thisWeek':
+      return t.bucketThisWeek;
+    case 'thisMonth':
+      return t.bucketThisMonth;
+    case 'last3Months':
+      return t.bucketLast3Months;
+    case 'older':
+      return t.bucketOlder;
+  }
+}
 
 export function ProjectList() {
   const index = useStore((s) => s.index);
@@ -52,6 +80,9 @@ export function ProjectList() {
   const checkedIds = useStore((s) => s.checkedIds);
   const toggleChecked = useStore((s) => s.toggleChecked);
   const setCheckedMany = useStore((s) => s.setCheckedMany);
+  const lang = useStore((s) => s.lang);
+  const t = useT();
+  const dateLocale = lang === 'ja' ? ja : enUS;
 
   const filtered = useMemo(() => {
     if (!index) return [] as ScannedProject[];
@@ -101,7 +132,7 @@ export function ProjectList() {
 
   const grouped = useMemo(() => {
     if (sortMode !== 'last_active') return null;
-    const m = new Map<string, ScannedProject[]>();
+    const m = new Map<BucketKey, ScannedProject[]>();
     for (const p of filtered) {
       const k = bucketKey(p.last_active);
       const cur = m.get(k) ?? [];
@@ -130,24 +161,24 @@ export function ProjectList() {
             onChange={(e) => setCheckedMany(visibleIds, e.target.checked)}
             className="accent-indigo-500"
           />
-          表示中をすべて選択
+          {t.selectAllVisible}
         </label>
         <span className="text-fg-faint">·</span>
-        <span className="text-fg-subtle">{filtered.length} 件表示中</span>
+        <span className="text-fg-subtle">{t.showing(filtered.length)}</span>
       </div>
 
       {filtered.length === 0 && (
         <div className="p-12 text-center text-fg-subtle text-sm">
           <div className="text-3xl mb-2">🔍</div>
-          該当するプロジェクトがありません
-          <div className="text-xs text-fg-faint mt-2">フィルタを緩めるか、検索ワードを変えてみてください</div>
+          {t.emptyFiltered}
+          <div className="text-xs text-fg-faint mt-2">{t.emptyFilteredHint}</div>
         </div>
       )}
 
       {grouped ? (
         <div>
           {grouped.map(([bucket, items]) => (
-            <BucketSection key={bucket} title={bucket} count={items.length}>
+            <BucketSection key={bucket} title={bucketLabel(t, bucket)} count={items.length}>
               {items.map((p) => (
                 <ProjectRow
                   key={p.id}
@@ -157,6 +188,8 @@ export function ProjectList() {
                   checked={checkedIds.has(p.id)}
                   onSelect={() => select(p.id)}
                   onCheck={() => toggleChecked(p.id)}
+                  dateLocale={dateLocale}
+                  checkboxAriaLabel={t.rowCheckboxAriaLabel}
                 />
               ))}
             </BucketSection>
@@ -173,6 +206,8 @@ export function ProjectList() {
               checked={checkedIds.has(p.id)}
               onSelect={() => select(p.id)}
               onCheck={() => toggleChecked(p.id)}
+              dateLocale={dateLocale}
+              checkboxAriaLabel={t.rowCheckboxAriaLabel}
             />
           ))}
         </div>
@@ -211,6 +246,8 @@ function ProjectRow({
   checked,
   onSelect,
   onCheck,
+  dateLocale,
+  checkboxAriaLabel,
 }: {
   project: ScannedProject;
   overrides: OverridesFile;
@@ -218,6 +255,8 @@ function ProjectRow({
   checked: boolean;
   onSelect: () => void;
   onCheck: () => void;
+  dateLocale: Locale;
+  checkboxAriaLabel: string;
 }) {
   const ov = overrides[project.id];
   const status = getProjectStatus(project, overrides);
@@ -243,7 +282,7 @@ function ProjectRow({
           checked={checked}
           onChange={onCheck}
           className="accent-indigo-500"
-          aria-label="選択"
+          aria-label={checkboxAriaLabel}
         />
       </div>
 
@@ -273,7 +312,7 @@ function ProjectRow({
 
       <div className="text-right shrink-0 w-28 pt-0.5 space-y-0.5">
         <div className="text-xs text-fg-muted">
-          {formatDistanceToNow(parseISO(project.last_active), { addSuffix: true, locale: ja })}
+          {formatDistanceToNow(parseISO(project.last_active), { addSuffix: true, locale: dateLocale })}
         </div>
         <div className="text-[10px] text-fg-subtle inline-flex items-center gap-1 justify-end">
           {project.entrypoint === 'desktop' ? (

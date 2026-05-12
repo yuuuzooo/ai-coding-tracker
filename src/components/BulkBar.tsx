@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { CheckCircle2, X, EyeOff, Eye } from 'lucide-react';
 import { useStore } from '../store';
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, type Priority, type ProjectStatus } from '../types';
-import { statusLabel } from './StatusBadge';
+import { useStatusLabel } from './StatusBadge';
+import { useT } from '../i18n/useT';
 
 export function BulkBar() {
   const checkedIds = useStore((s) => s.checkedIds);
@@ -11,18 +12,20 @@ export function BulkBar() {
   const bulkApply = useStore((s) => s.bulkApply);
   const [pendingStatus, setPendingStatus] = useState<ProjectStatus>('paused');
   const [pendingPriority, setPendingPriority] = useState<Priority | ''>('');
+  const t = useT();
+  const statusLabel = useStatusLabel();
 
   if (checkedIds.size === 0) return null;
 
   return (
     <div className="bg-indigo-500/10 border-b border-indigo-500/30 px-4 py-2 flex items-center gap-3 flex-wrap text-sm">
       <div className="font-medium text-indigo-700 dark:text-indigo-200 inline-flex items-center gap-1.5">
-        <CheckCircle2 size={14} /> {checkedIds.size} 件選択
+        <CheckCircle2 size={14} /> {t.bulkSelectedCount(checkedIds.size)}
       </div>
 
       <Sep />
 
-      <span className="text-xs text-fg-muted">ステータス</span>
+      <span className="text-xs text-fg-muted">{t.bulkStatus}</span>
       <select
         value={pendingStatus}
         onChange={(e) => setPendingStatus(e.target.value as ProjectStatus)}
@@ -39,18 +42,18 @@ export function BulkBar() {
         onClick={() => bulkApply({ status: pendingStatus })}
         className="px-3 py-1 rounded-md bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-medium disabled:opacity-50"
       >
-        {bulkBusy ? '適用中…' : '適用'}
+        {bulkBusy ? t.bulkApplying : t.bulkApply}
       </button>
 
       <Sep />
 
-      <span className="text-xs text-fg-muted">優先度</span>
+      <span className="text-xs text-fg-muted">{t.bulkPriority}</span>
       <select
         value={pendingPriority}
         onChange={(e) => setPendingPriority(e.target.value as Priority | '')}
         className="bg-elev border border-line rounded px-2 py-1 text-xs"
       >
-        <option value="">— 選択 —</option>
+        <option value="">{t.bulkPrioritySelectPlaceholder}</option>
         {PRIORITY_OPTIONS.map((p) => (
           <option key={p} value={p}>
             {p}
@@ -62,15 +65,15 @@ export function BulkBar() {
         onClick={() => pendingPriority && bulkApply({ priority: pendingPriority })}
         className="px-2.5 py-1 rounded-md border border-line hover:bg-elev text-xs disabled:opacity-50"
       >
-        適用
+        {t.bulkApply}
       </button>
       <button
         disabled={bulkBusy}
         onClick={() => bulkApply({ clearPriority: true })}
         className="px-2.5 py-1 rounded-md border border-line hover:bg-elev text-xs disabled:opacity-50"
-        title="優先度を未設定に戻す"
+        title={t.bulkClearTitle}
       >
-        クリア
+        {t.bulkClear}
       </button>
 
       <Sep />
@@ -80,14 +83,14 @@ export function BulkBar() {
         onClick={() => bulkApply({ hidden: true })}
         className="px-2.5 py-1 rounded-md border border-line hover:bg-elev text-xs inline-flex items-center gap-1 disabled:opacity-50"
       >
-        <EyeOff size={12} /> 隠す
+        <EyeOff size={12} /> {t.bulkHide}
       </button>
       <button
         disabled={bulkBusy}
         onClick={() => bulkApply({ hidden: false })}
         className="px-2.5 py-1 rounded-md border border-line hover:bg-elev text-xs inline-flex items-center gap-1 disabled:opacity-50"
       >
-        <Eye size={12} /> 戻す
+        <Eye size={12} /> {t.bulkUnhide}
       </button>
 
       <div className="flex-1" />
@@ -96,7 +99,7 @@ export function BulkBar() {
         onClick={clearChecked}
         className="px-2 py-1 rounded text-fg-muted hover:bg-elev hover:text-fg-strong text-xs inline-flex items-center gap-1"
       >
-        <X size={12} /> 選択解除
+        <X size={12} /> {t.bulkClearSelection}
       </button>
     </div>
   );

@@ -6,6 +6,7 @@ import { BulkBar } from './components/BulkBar';
 import { ProjectList } from './components/ProjectList';
 import { ProjectDetail } from './components/ProjectDetail';
 import { ShortcutHints } from './components/ShortcutHints';
+import { EmptyState } from './components/EmptyState';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 export function App() {
@@ -25,7 +26,13 @@ export function App() {
         <Toolbar />
         <BulkBar />
         <div className="flex-1 flex overflow-hidden">
-          {loading && !index ? <ListSkeleton /> : <ProjectList />}
+          {loading && !index ? (
+            <ListSkeleton />
+          ) : index && index.projects.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <ProjectList />
+          )}
           <ProjectDetail />
         </div>
       </main>

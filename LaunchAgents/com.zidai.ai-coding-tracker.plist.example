@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LaunchAgent template for keeping ai-coding-tracker running on macOS.
+
+  Setup:
+    1. Copy this file to ~/Library/LaunchAgents/ and drop the `.example` suffix:
+         cp LaunchAgents/com.zidai.ai-coding-tracker.plist.example \
+            ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
+    2. Replace every `__REPLACE_*__` placeholder below with the values for
+       your machine:
+         - __REPLACE_NODE_PATH__       : output of `which node`
+         - __REPLACE_NPM_CLI_JS_PATH__ : `npm-cli.js` path. Find with
+                                        `node -e "console.log(require.resolve('npm/bin/npm-cli.js'))"`
+                                        or `dirname $(which npm)/../lib/node_modules/npm/bin/npm-cli.js`
+         - __REPLACE_PROJECT_DIR__    : absolute path of the cloned repo
+         - __REPLACE_PATH_ENV__       : value for $PATH (include node's bin dir)
+         - __REPLACE_HOME__           : your home directory (output of `echo $HOME`)
+    3. Load it:
+         launchctl load ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
+
+  Useful commands:
+    Stop:   launchctl unload ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
+    Status: launchctl list | grep ai-coding-tracker
+    Port:   lsof -nP -iTCP:5180 -sTCP:LISTEN
+    Logs:   tail -f /tmp/ai-coding-tracker.log /tmp/ai-coding-tracker.error.log
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.zidai.ai-coding-tracker</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__REPLACE_NODE_PATH__</string>
+        <string>__REPLACE_NPM_CLI_JS_PATH__</string>
+        <string>run</string>
+        <string>dev</string>
+        <string>--</string>
+        <string>--port</string>
+        <string>5180</string>
+        <string>--strictPort</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__REPLACE_PROJECT_DIR__</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>__REPLACE_PATH_ENV__</string>
+        <key>HOME</key>
+        <string>__REPLACE_HOME__</string>
+        <key>NODE_ENV</key>
+        <string>development</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/ai-coding-tracker.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/ai-coding-tracker.error.log</string>
+</dict>
+</plist>

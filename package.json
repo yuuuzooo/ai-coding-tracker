@@ -2,7 +2,30 @@
   "name": "ai-coding-tracker",
   "private": true,
   "version": "0.1.0",
+  "description": "A local web app that auto-discovers your Claude Code and Codex CLI sessions, tracks status and next actions, and helps you revive abandoned projects.",
   "type": "module",
+  "license": "MIT",
+  "author": "yuuuzooo",
+  "homepage": "https://github.com/yuuuzooo/ai-coding-tracker#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yuuuzooo/ai-coding-tracker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yuuuzooo/ai-coding-tracker/issues"
+  },
+  "keywords": [
+    "claude-code",
+    "codex",
+    "session-tracker",
+    "ai-coding",
+    "dashboard",
+    "local-first",
+    "developer-tools"
+  ],
+  "engines": {
+    "node": ">=18.17.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

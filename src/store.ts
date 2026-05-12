@@ -1,6 +1,20 @@
 import { create } from 'zustand';
 import type { IndexFile, Override, OverridesFile, ProjectStatus, ScannedProject } from './types';
 import { fetchIndex, fetchOverrides, putOverride, rescan, bulkUpsertOverridesApi } from './api';
+import { detectLang, STRINGS, type Lang } from './i18n/strings';
+
+const LANG_STORAGE_KEY = 'ai-coding-tracker:lang';
+
+function loadInitialLang(): Lang {
+  if (typeof window === 'undefined') return 'en';
+  try {
+    const v = window.localStorage.getItem(LANG_STORAGE_KEY);
+    if (v === 'en' || v === 'ja') return v;
+  } catch {
+    /* ignore */
+  }
+  return detectLang();
+}
 
 type StatusFilter = ProjectStatus | 'all';
 type PriorityFilter = 'A' | 'B' | 'C' | 'none' | 'all';
@@ -21,6 +35,7 @@ type State = {
   sortMode: SortMode;
   sourceFilter: 'all' | 'claude-code' | 'codex';
   entrypointFilter: 'all' | 'cli' | 'desktop' | 'unknown';
+  lang: Lang;
 
   load: () => Promise<void>;
   triggerRescan: () => Promise<void>;
@@ -32,6 +47,7 @@ type State = {
   setSortMode: (m: SortMode) => void;
   setSourceFilter: (s: 'all' | 'claude-code' | 'codex') => void;
   setEntrypointFilter: (s: 'all' | 'cli' | 'desktop' | 'unknown') => void;
+  setLang: (l: Lang) => void;
   saveOverride: (id: string, body: Omit<Override, 'updated_at'>) => Promise<void>;
   toggleChecked: (id: string) => void;
   setCheckedMany: (ids: string[], on: boolean) => void;
@@ -56,6 +72,7 @@ export const useStore = create<State>((set, get) => ({
   sortMode: 'last_active',
   sourceFilter: 'all',
   entrypointFilter: 'all',
+  lang: loadInitialLang(),
 
   async load() {
     set({ loading: true, error: null });
@@ -86,6 +103,14 @@ export const useStore = create<State>((set, get) => ({
   setSortMode: (m) => set({ sortMode: m }),
   setSourceFilter: (s) => set({ sourceFilter: s }),
   setEntrypointFilter: (s) => set({ entrypointFilter: s }),
+  setLang: (l) => {
+    try {
+      window.localStorage.setItem(LANG_STORAGE_KEY, l);
+    } catch {
+      /* ignore */
+    }
+    set({ lang: l });
+  },
 
   async saveOverride(id, body) {
     const result = await putOverride(id, body);
@@ -136,9 +161,10 @@ export const useStore = create<State>((set, get) => ({
       });
       const result = await bulkUpsertOverridesApi(updates);
       const nextOverrides = { ...get().overrides, ...result.overrides };
+      const t = STRINGS[get().lang];
       const errMsg =
         result.failed.length > 0
-          ? `${result.ok.length}件適用、${result.failed.length}件失敗`
+          ? t.bulkResultPartial(result.ok.length, result.failed.length)
           : null;
       set({ overrides: nextOverrides, bulkBusy: false, error: errMsg });
     } catch (e) {

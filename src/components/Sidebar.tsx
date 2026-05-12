@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Search, RefreshCw, Sparkles, Moon, Sun } from 'lucide-react';
+import { Search, RefreshCw, Sparkles, Moon, Sun, Languages } from 'lucide-react';
 import { useStore } from '../store';
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, type ProjectStatus } from '../types';
-import { statusLabel } from './StatusBadge';
+import { useStatusLabel } from './StatusBadge';
 import { useTheme } from '../hooks/useTheme';
+import { useT } from '../i18n/useT';
+import type { Lang } from '../i18n/strings';
 
 const STATUS_DOT: Record<ProjectStatus, string> = {
   active: 'bg-emerald-400',
@@ -33,7 +35,11 @@ export function Sidebar() {
   const showHidden = useStore((s) => s.showHidden);
   const setShowHidden = useStore((s) => s.setShowHidden);
   const triggerRescan = useStore((s) => s.triggerRescan);
+  const lang = useStore((s) => s.lang);
+  const setLang = useStore((s) => s.setLang);
   const { theme, toggle: toggleTheme } = useTheme();
+  const t = useT();
+  const statusLabel = useStatusLabel();
 
   const counts = useMemo(() => {
     const out = {
@@ -53,7 +59,6 @@ export function Sidebar() {
       if (!showHidden && ov?.hidden) continue;
       const st = (ov?.status ?? 'active') as ProjectStatus;
       out.byStatus[st]++;
-      // Default-visible set excludes "不要" — abandoned items only appear when explicitly filtered to.
       if (st === 'abandoned') continue;
       out.visible++;
       const pr = ov?.priority;
@@ -69,11 +74,21 @@ export function Sidebar() {
     <aside className="w-72 shrink-0 bg-surface border-r border-line flex flex-col h-full overflow-hidden">
       <div className="px-4 py-3 border-b border-line flex items-center gap-1.5">
         <Sparkles size={16} className="text-indigo-500 dark:text-indigo-400" />
-        <div className="font-semibold tracking-tight text-fg-strong">AI Coding Tracker</div>
+        <div className="font-semibold tracking-tight text-fg-strong">{t.appTitle}</div>
         <div className="ml-auto flex items-center gap-0.5">
           <button
+            onClick={() => setLang(lang === 'en' ? 'ja' : 'en')}
+            title={t.language}
+            aria-label={t.language}
+            className="p-1.5 rounded text-fg-muted hover:bg-elev hover:text-fg-strong inline-flex items-center gap-0.5 text-[10px] font-medium"
+          >
+            <Languages size={14} />
+            <span className="uppercase">{(lang === 'en' ? 'ja' : 'en') as Lang}</span>
+          </button>
+          <button
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
+            title={theme === 'dark' ? t.themeLight : t.themeDark}
+            aria-label={theme === 'dark' ? t.themeLight : t.themeDark}
             className="p-1.5 rounded text-fg-muted hover:bg-elev hover:text-fg-strong"
           >
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
@@ -81,7 +96,8 @@ export function Sidebar() {
           <button
             onClick={() => triggerRescan()}
             disabled={loading}
-            title="再スキャン"
+            title={t.rescan}
+            aria-label={t.rescan}
             className="p-1.5 rounded text-fg-muted hover:bg-elev hover:text-fg-strong disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
@@ -96,16 +112,16 @@ export function Sidebar() {
             id="pjx-search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="検索 (押下 /)"
+            placeholder={t.searchPlaceholder}
             className="w-full bg-elev border border-line rounded-md pl-8 pr-2 py-1.5 text-sm placeholder:text-fg-faint focus:outline-none focus:ring-1 focus:ring-indigo-500/60"
           />
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 text-sm">
-        <Group title="ステータス">
+        <Group title={t.groupStatus}>
           <Pill
-            label="すべて"
+            label={t.pillAll}
             count={counts.visible}
             active={statusFilter === 'all'}
             onClick={() => setStatusFilter('all')}
@@ -122,9 +138,9 @@ export function Sidebar() {
           ))}
         </Group>
 
-        <Group title="優先度">
+        <Group title={t.groupPriority}>
           <Pill
-            label="すべて"
+            label={t.pillAll}
             count={counts.visible}
             active={priorityFilter === 'all'}
             onClick={() => setPriorityFilter('all')}
@@ -141,7 +157,7 @@ export function Sidebar() {
             />
           ))}
           <Pill
-            label="未設定"
+            label={t.priorityUnset}
             count={counts.byPriority.none}
             active={priorityFilter === 'none'}
             onClick={() => setPriorityFilter('none')}
@@ -149,9 +165,9 @@ export function Sidebar() {
           />
         </Group>
 
-        <Group title="ソース">
+        <Group title={t.groupSource}>
           <Pill
-            label="すべて"
+            label={t.pillAll}
             count={counts.visible}
             active={sourceFilter === 'all'}
             onClick={() => setSourceFilter('all')}
@@ -173,9 +189,9 @@ export function Sidebar() {
           />
         </Group>
 
-        <Group title="起動方法">
+        <Group title={t.groupEntrypoint}>
           <Pill
-            label="すべて"
+            label={t.pillAll}
             count={counts.visible}
             active={entrypointFilter === 'all'}
             onClick={() => setEntrypointFilter('all')}
@@ -196,24 +212,24 @@ export function Sidebar() {
             compact
           />
           <div className="text-[10px] text-fg-faint mt-1 leading-relaxed">
-            ※ ブラウザ版（claude.ai/code）はローカルに履歴が保存されないため検知不可
+            {t.entrypointBrowserNote}
           </div>
         </Group>
 
-        <Group title="並び順">
+        <Group title={t.groupSort}>
           <select
             value={sortMode}
             onChange={(e) => setSortMode(e.target.value as any)}
             className="w-full bg-elev border border-line rounded-md px-2 py-1.5 text-sm"
           >
-            <option value="last_active">最終活動順</option>
-            <option value="priority">優先度順</option>
-            <option value="status">ステータス順</option>
-            <option value="name">名前順</option>
+            <option value="last_active">{t.sortLastActive}</option>
+            <option value="priority">{t.sortPriority}</option>
+            <option value="status">{t.sortStatus}</option>
+            <option value="name">{t.sortName}</option>
           </select>
         </Group>
 
-        <Group title="表示">
+        <Group title={t.groupDisplay}>
           <label className="flex items-center gap-2 text-sm text-fg cursor-pointer">
             <input
               type="checkbox"
@@ -221,13 +237,13 @@ export function Sidebar() {
               onChange={(e) => setShowHidden(e.target.checked)}
               className="accent-indigo-500"
             />
-            非表示も表示 ({counts.hidden})
+            {t.showHidden(counts.hidden)}
           </label>
         </Group>
       </div>
 
       <div className="px-4 py-2 border-t border-line text-[11px] text-fg-subtle flex items-center justify-between">
-        <span>{counts.visible} / {counts.total} 件</span>
+        <span>{t.footerCount(counts.visible, counts.total)}</span>
         {index && (
           <span className="font-mono" title={index.generated_at}>
             {format(parseISO(index.generated_at), 'MM-dd HH:mm')}

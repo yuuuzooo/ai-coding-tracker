@@ -1,22 +1,26 @@
 import { useState } from 'react';
 import { Keyboard, X } from 'lucide-react';
-
-const HINTS: Array<[string, string]> = [
-  ['/', '検索にフォーカス'],
-  ['j / k', '下/上に移動（↓↑も可）'],
-  ['1〜5', 'ステータス変更（進行中/保留/不要/完了/アイデア）'],
-  ['a / b / c', '優先度を A/B/C にセット'],
-  ['h', '一覧から隠す ⇄ 表示'],
-  ['Esc', '選択解除 / 詳細を閉じる'],
-];
+import { useT } from '../i18n/useT';
 
 export function ShortcutHints() {
   const [open, setOpen] = useState(false);
+  const t = useT();
+
+  const HINTS: Array<[string, string]> = [
+    ['/', t.shortcutFocusSearch],
+    ['j / k', t.shortcutMove],
+    ['1–5', t.shortcutStatus],
+    ['a / b / c', t.shortcutPriority],
+    ['h', t.shortcutHide],
+    ['Esc', t.shortcutEsc],
+  ];
+
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        title="キーボードショートカット"
+        title={t.shortcuts}
+        aria-label={t.shortcuts}
         className="fixed bottom-4 right-4 p-2 rounded-full bg-elev border border-line text-fg-muted hover:text-fg-strong hover:border-line z-40"
       >
         <Keyboard size={14} />
@@ -31,9 +35,10 @@ export function ShortcutHints() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-fg-strong">キーボードショートカット</h3>
+              <h3 className="font-medium text-fg-strong">{t.shortcutsTitle}</h3>
               <button
                 onClick={() => setOpen(false)}
+                aria-label={t.close}
                 className="p-1 rounded text-fg-subtle hover:text-fg-strong"
               >
                 <X size={16} />

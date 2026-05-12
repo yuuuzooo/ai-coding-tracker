@@ -1,0 +1,37 @@
+# systemd user unit for ai-coding-tracker (Linux)
+#
+# Setup:
+#   1. Copy this file to ~/.config/systemd/user/ai-coding-tracker.service
+#        mkdir -p ~/.config/systemd/user
+#        cp systemd/ai-coding-tracker.service.example \
+#           ~/.config/systemd/user/ai-coding-tracker.service
+#   2. Replace every __REPLACE_*__ placeholder below:
+#        __REPLACE_NODE_PATH__     : `which node`
+#        __REPLACE_NPM_PATH__      : `which npm`
+#        __REPLACE_PROJECT_DIR__   : absolute path of the cloned repo
+#        __REPLACE_HOME__          : your home directory (`echo $HOME`)
+#   3. Reload and enable:
+#        systemctl --user daemon-reload
+#        systemctl --user enable --now ai-coding-tracker.service
+#
+# Useful commands:
+#   Status: systemctl --user status ai-coding-tracker
+#   Logs:   journalctl --user -u ai-coding-tracker -f
+#   Stop:   systemctl --user stop ai-coding-tracker
+#   Port:   ss -ltnp | grep 5180
+
+[Unit]
+Description=AI Coding Tracker (local web dashboard)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=__REPLACE_PROJECT_DIR__
+Environment="HOME=__REPLACE_HOME__"
+Environment="NODE_ENV=development"
+ExecStart=__REPLACE_NODE_PATH__ __REPLACE_NPM_PATH__ run dev -- --port 5180 --strictPort
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

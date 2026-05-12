@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## 2026-05-13 (2)
+### 依頼内容
+OSS 配布に向けた整備と、英語圏のユーザーが触れるよう英語対応する。
+
+### 変更内容
+- **LICENSE**: MIT を追加
+- **package.json**: `description` / `license` / `author` / `homepage` / `repository` / `bugs` / `keywords` / `engines (node >= 18.17.0)` を追加
+- **i18n 基盤**（en / ja の 2 言語）
+  - `src/i18n/strings.ts` に翻訳辞書を集約、`detectLang()` で `navigator.language` 検出
+  - `src/i18n/useT.ts` フックでコンポーネントから参照
+  - 言語設定は `localStorage` (`ai-coding-tracker:lang`) に永続化、Sidebar ヘッダにトグル
+  - 全 UI コンポーネント（Sidebar / BulkBar / ProjectList / ProjectDetail / ShortcutHints / CopyableCommand / StatusBadge / EmptyState）の日本語ハードコード文字列を `t.*` 経由に置換
+  - 日付バケットも `BucketKey` 列挙型 + ローカライズ関数で多言語化
+  - `formatDistanceToNow` の locale を `lang` に応じて `enUS` / `ja` 切替
+- **環境変数によるパス上書き**（WSL / 非標準配置ユーザー向け）
+  - `AICT_CLAUDE_PROJECTS_DIR` / `AICT_CODEX_DIR` / `AICT_CODEX_SESSIONS_DIR` / `AICT_DATA_DIR`
+  - `server/paths.ts` の `envPath()` ヘルパで実装、絶対パス化込み
+- **空表示ガイド**: `EmptyState.tsx` を追加。`~/.claude/projects` / `~/.codex/sessions` どちらも空の場合に原因と対処を表示
+- **URL escape + a11y**
+  - `vscode://file{path}` / `cursor://file{path}` の path を `encodeURI()`
+  - icon-only ボタン（theme toggle / 再スキャン / 言語切替 / Edit pencil / Close / CopyableCommand / ShortcutHints）に `aria-label` 追加
+- **デプロイテンプレート**
+  - `LaunchAgents/com.zidai.ai-coding-tracker.plist.example` の個人情報を `__REPLACE_*__` placeholder 化
+  - `systemd/ai-coding-tracker.service.example` を新規追加（Linux ユーザー向け）
+- **README 全面書き直し**: 英語ファースト + 末尾に日本語版。Features / Requirements / Install / Configuration / API / Service / Data / Safety / Known limitations / License を整理
+
+### 動作確認
+- `npx tsc --noEmit` クリーン
+- LaunchAgent 再起動済み、port 5180 で稼働、`GET /api/index` で 522 プロジェクト取得
+- `POST /api/rescan` (Origin あり) 200
+- 環境変数 `AICT_CLAUDE_PROJECTS_DIR=/tmp/test-claude AICT_DATA_DIR=/tmp/test-data` で起動した paths.ts が期待通り解決
+
 ## 2026-05-13
 ### 依頼内容
 Codex CLI でコードレビューしてもらい、Critical / Important の指摘を機能影響を出さずに直す。

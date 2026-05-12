@@ -3,9 +3,10 @@ import { format, parseISO } from 'date-fns';
 import { Check, ExternalLink, Folder, MessageSquare, Pencil, Play, X } from 'lucide-react';
 import { useStore, getDisplayName } from '../store';
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, type Priority, type ProjectStatus } from '../types';
-import { statusLabel, StatusBadge } from './StatusBadge';
+import { useStatusLabel, StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 import { CopyableCommand } from './CopyableCommand';
+import { useT } from '../i18n/useT';
 
 export function ProjectDetail() {
   const selectedId = useStore((s) => s.selectedId);
@@ -16,6 +17,8 @@ export function ProjectDetail() {
 
   const project = index?.projects.find((p) => p.id === selectedId) ?? null;
   const ov = project ? overrides[project.id] : undefined;
+  const t = useT();
+  const statusLabel = useStatusLabel();
 
   const [status, setStatus] = useState<ProjectStatus>('active');
   const [priority, setPriority] = useState<Priority | ''>('');
@@ -116,14 +119,15 @@ export function ProjectDetail() {
                 <h2
                   onClick={() => setEditingTitle(true)}
                   className="text-[17px] font-semibold leading-snug cursor-text"
-                  title="クリックで編集"
+                  title={t.editTitleHover}
                 >
                   {getDisplayName(project, overrides)}
                 </h2>
                 <button
                   onClick={() => setEditingTitle(true)}
                   className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 mt-1 rounded text-fg-subtle hover:text-fg-strong"
-                  title="表示名を編集"
+                  title={t.editTitle}
+                  aria-label={t.editTitle}
                 >
                   <Pencil size={12} />
                 </button>
@@ -133,7 +137,7 @@ export function ProjectDetail() {
           <button
             onClick={() => select(null)}
             className="p-1 rounded text-fg-subtle hover:bg-elev hover:text-fg-strong"
-            aria-label="閉じる"
+            aria-label={t.close}
           >
             <X size={16} />
           </button>
@@ -167,17 +171,17 @@ export function ProjectDetail() {
             }}
             className="bg-elev border border-line rounded px-2 py-0.5 text-xs"
           >
-            <option value="">優先度なし</option>
+            <option value="">{t.priorityNone}</option>
             {PRIORITY_OPTIONS.map((p) => (
               <option key={p} value={p}>
-                優先度 {p}
+                {t.priorityLabel(p)}
               </option>
             ))}
           </select>
           <div className="flex-1" />
           {savedFlash && (
             <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 animate-toast-in">
-              <Check size={12} /> 保存
+              <Check size={12} /> {t.saved}
             </span>
           )}
         </div>
@@ -187,29 +191,25 @@ export function ProjectDetail() {
         {/* Resume command — promoted to top */}
         <section className="bg-indigo-500/5 border border-indigo-500/30 rounded-lg p-3 space-y-2">
           <div className="text-xs font-medium text-indigo-700 dark:text-indigo-200 inline-flex items-center gap-1.5">
-            <Play size={12} /> 続きから再開
+            <Play size={12} /> {t.resumeHeading}
           </div>
           {resumeCommand ? (
             <CopyableCommand command={resumeCommand} />
           ) : (
-            <div className="text-xs text-fg-subtle">起動方法を判定できませんでした</div>
+            <div className="text-xs text-fg-subtle">{t.resumeUnknown}</div>
           )}
           {project.entrypoint === 'desktop' && (
-            <div className="text-[11px] text-fg-subtle">
-              ※ Claude Desktop アプリのチャット履歴からも再開できます
-            </div>
+            <div className="text-[11px] text-fg-subtle">{t.resumeDesktopHint}</div>
           )}
           {project.source === 'codex' && (
-            <div className="text-[11px] text-fg-subtle">
-              ※ <span className="font-mono">codex resume</span> 単体で対話的にセッション選択も可
-            </div>
+            <div className="text-[11px] text-fg-subtle">{t.resumeCodexHint}</div>
           )}
         </section>
 
         {/* Path / quick actions */}
         {project.path && (
           <section className="space-y-2">
-            <div className="text-[10px] uppercase tracking-wider text-fg-subtle">作業ディレクトリ</div>
+            <div className="text-[10px] uppercase tracking-wider text-fg-subtle">{t.workingDir}</div>
             <div className="flex items-center gap-2">
               <Folder size={13} className="text-fg-subtle" />
               <span className="font-mono text-xs text-fg truncate flex-1" title={project.path}>
@@ -219,16 +219,16 @@ export function ProjectDetail() {
                 onClick={() => navigator.clipboard.writeText(project.path!)}
                 className="text-[11px] px-2 py-0.5 rounded border border-line hover:bg-elev text-fg-muted"
               >
-                Copy
+                {t.copy}
               </button>
               <button
-                onClick={() => window.open(`vscode://file${project.path}`)}
+                onClick={() => window.open(`vscode://file${encodeURI(project.path!)}`)}
                 className="text-[11px] px-2 py-0.5 rounded border border-line hover:bg-elev text-fg-muted inline-flex items-center gap-1"
               >
                 <ExternalLink size={11} /> VS Code
               </button>
               <button
-                onClick={() => window.open(`cursor://file${project.path}`)}
+                onClick={() => window.open(`cursor://file${encodeURI(project.path!)}`)}
                 className="text-[11px] px-2 py-0.5 rounded border border-line hover:bg-elev text-fg-muted inline-flex items-center gap-1"
               >
                 <ExternalLink size={11} /> Cursor
@@ -239,14 +239,14 @@ export function ProjectDetail() {
 
         {/* Stats */}
         <section className="grid grid-cols-3 gap-2 text-xs">
-          <Stat label="メッセージ数" value={String(project.total_messages)} />
-          <Stat label="最終活動" value={format(parseISO(project.last_active), 'MM-dd HH:mm')} />
-          <Stat label="初回活動" value={format(parseISO(project.first_seen), 'MM-dd HH:mm')} />
+          <Stat label={t.statMessages} value={String(project.total_messages)} />
+          <Stat label={t.statLastActive} value={format(parseISO(project.last_active), 'MM-dd HH:mm')} />
+          <Stat label={t.statFirstSeen} value={format(parseISO(project.first_seen), 'MM-dd HH:mm')} />
         </section>
 
         {/* Editable fields */}
         <section className="space-y-3">
-          <Field label="次にやること（手動メモ）">
+          <Field label={t.fieldNextAction}>
             <textarea
               value={nextAction}
               onChange={(e) => setNextAction(e.target.value)}
@@ -256,7 +256,7 @@ export function ProjectDetail() {
             />
           </Field>
 
-          <Field label="自由メモ">
+          <Field label={t.fieldNote}>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -276,24 +276,20 @@ export function ProjectDetail() {
               }}
               className="accent-indigo-500"
             />
-            一覧から隠す
-            <span className="text-[11px] text-fg-subtle">
-              （サイドバー「表示」グループの「非表示も表示」で再表示）
-            </span>
+            {t.hideFromList}
+            <span className="text-[11px] text-fg-subtle">{t.hideFromListHint}</span>
           </label>
         </section>
 
         {/* Conversation excerpts */}
         <section className="space-y-2">
           <div className="text-[10px] uppercase tracking-wider text-fg-subtle inline-flex items-center gap-1.5">
-            <MessageSquare size={11} /> 直近のやり取り
+            <MessageSquare size={11} /> {t.recentExchange}
           </div>
-          <Excerpt label="アシスタント" body={project.last_assistant_message} />
-          <Excerpt label="ユーザー" body={project.last_user_message} />
+          <Excerpt label={t.excerptAssistant} body={project.last_assistant_message} emptyLabel={t.excerptEmpty} />
+          <Excerpt label={t.excerptUser} body={project.last_user_message} emptyLabel={t.excerptEmpty} />
           {project.source === 'codex' && (
-            <div className="text-[11px] text-fg-subtle">
-              ※ Codex は user query のみ取得可能（assistant 出力はローカル保存されません）
-            </div>
+            <div className="text-[11px] text-fg-subtle">{t.codexNote}</div>
           )}
         </section>
       </div>
@@ -319,12 +315,12 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Excerpt({ label, body }: { label: string; body: string }) {
+function Excerpt({ label, body, emptyLabel }: { label: string; body: string; emptyLabel: string }) {
   return (
     <div>
       <div className="text-[10px] text-fg-subtle mb-1">{label}</div>
       <pre className="bg-elev/60 border border-line rounded-md p-2.5 text-[11px] whitespace-pre-wrap break-words text-fg max-h-40 overflow-auto">
-        {body || <span className="text-fg-faint">(なし)</span>}
+        {body || <span className="text-fg-faint">{emptyLabel}</span>}
       </pre>
     </div>
   );
