@@ -6,6 +6,25 @@ A local-first web dashboard that auto-discovers your **Claude Code** and **Codex
 
 [日本語版はこちら](#日本語)
 
+![AI Coding Tracker — light mode](docs/screenshots/light-mode-en.png)
+
+<details>
+<summary>More screenshots (dark mode, detail panel, bulk actions, Japanese UI)</summary>
+
+#### Dark mode
+![Dark mode](docs/screenshots/dark-mode-en.png)
+
+#### Detail panel — resume command, working directory, editable notes
+![Detail panel](docs/screenshots/detail-panel-en.png)
+
+#### Bulk actions — status / priority / hide across many sessions at once
+![Bulk actions](docs/screenshots/bulk-actions-en.png)
+
+#### Japanese UI (auto-detected from `navigator.language`, toggleable)
+![Japanese UI](docs/screenshots/japanese-ui.png)
+
+</details>
+
 ---
 
 ## Features
