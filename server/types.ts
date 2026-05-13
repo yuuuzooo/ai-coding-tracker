@@ -7,6 +7,7 @@ export type ScannedProject = {
   entrypoint: Entrypoint;
   name: string;
   path: string | null;
+  storage_cwd: string | null;
   session_count: number;
   first_seen: string;
   last_active: string;

@@ -77,6 +77,7 @@ type Acc = {
   source: Source;
   name: string;
   path: string | null;
+  storage_cwd: string | null;
   key: string;
   entrypoint_counts: Record<string, number>;
   cwd_counts: Record<string, number>;
@@ -96,6 +97,7 @@ function newAcc(source: Source, name: string, p: string | null, key?: string): A
     source,
     name,
     path: p,
+    storage_cwd: null,
     key: key ?? name,
     entrypoint_counts: {},
     cwd_counts: {},
@@ -248,6 +250,11 @@ async function scanClaudeCodeSessionFile(file: string, dirName: string): Promise
       const cwd = rec?.cwd;
       if (typeof cwd === 'string' && cwd) {
         acc.cwd_counts[cwd] = (acc.cwd_counts[cwd] ?? 0) + 1;
+        // First cwd encountered = cwd at session start. Claude Code's
+        // `--resume <id>` lookup is scoped to ~/.claude/projects/<encoded
+        // start-cwd>/, so we surface this as storage_cwd for the Resume
+        // copy-paste command. Most sessions: storage_cwd === dominant cwd.
+        if (!acc.storage_cwd) acc.storage_cwd = cwd;
       }
       const ep = typeof rec?.entrypoint === 'string' ? rec.entrypoint : '';
       if (ep) acc.entrypoint_counts[ep] = (acc.entrypoint_counts[ep] ?? 0) + 1;
@@ -393,6 +400,7 @@ async function scanCodexRolloutFile(file: string): Promise<Acc | null> {
         const cwd = rec.payload.cwd;
         if (typeof cwd === 'string' && cwd) {
           acc.path = cwd;
+          acc.storage_cwd = cwd;
           acc.name = path.basename(cwd) || cwd;
         }
         const originator = typeof rec.payload.originator === 'string' ? rec.payload.originator : '';
@@ -580,6 +588,7 @@ function toProject(acc: Acc): ScannedProject {
     entrypoint: pickEntrypoint(acc),
     name: acc.name,
     path: acc.path,
+    storage_cwd: acc.storage_cwd ?? acc.path,
     session_count: acc.sessions.size,
     first_seen: acc.first_seen,
     last_active: acc.last_active,

@@ -67,11 +67,12 @@ export function ProjectDetail() {
     window.setTimeout(() => setSavedFlash(false), 1400);
   }
 
+  const resumeCwd = project.storage_cwd ?? project.path;
   const resumeCommand =
     project.source === 'codex' && project.last_session_id
       ? `codex resume ${project.last_session_id}`
-      : project.path
-        ? `cd "${project.path}" && claude --resume ${project.last_session_id ?? ''}`.trim()
+      : resumeCwd
+        ? `cd "${resumeCwd}" && claude --resume ${project.last_session_id ?? ''}`.trim()
         : null;
 
   return (

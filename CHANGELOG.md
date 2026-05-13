@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## 2026-05-13 (4) — Resume コマンドのパス選定を保存先ベースに修正
+### 依頼内容
+ダッシュボードの「続きから再開」コマンドをコピペしても `No conversation found with session ID: ...` で再開できないケースがある。`claude --resume <id>` が探すのは「セッション起動時の cwd に対応する `~/.claude/projects/<encoded>/` 配下のみ」であるため、起動 cwd ≠ 主たる作業 cwd のセッション（例: `~` で `claude` を起動して後から `cd プロジェクト` したもの）でコピペが失敗していた。
+
+### 変更内容
+- **`server/scanner.ts`**
+  - `Acc` に `storage_cwd: string | null` を追加
+  - `scanClaudeCodeSessionFile` で **最初の `cwd`**（= 起動 cwd）を捕捉して `storage_cwd` にセット。これは Claude Code が `~/.claude/projects/<encoded start-cwd>/` にセッションを保存するため、`--resume` の検索先と一致する
+  - Codex 側は `session_meta.payload.cwd` を `storage_cwd` にもコピー
+  - `toProject()` が `storage_cwd ?? path` を返す（フォールバックあり）
+- **`server/types.ts` / `src/types.ts`**: `ScannedProject` に `storage_cwd: string | null` 追加
+- **`src/components/ProjectDetail.tsx`**: Resume コマンド生成を `project.storage_cwd ?? project.path` ベースに変更。表示用の「作業ディレクトリ」「VS Code / Cursor」リンクは従来通り `project.path`（最頻 cwd）を使うので、表示と再開動作が分離
+
+### 影響範囲
+- 通常セッション（`cd <project> && claude` で起動）: `storage_cwd === path` なので Resume コマンドは従来と完全に同一文字列 → **挙動変化なし**
+- 異常セッション（起動 cwd ≠ 主たる作業 cwd）: コピペで `--resume` が成功するようになる → **改善**
+- 全プロジェクト 524 件のうち、**32 件がこの異常パターンに該当**（再スキャン時に判明）。これら全てで Resume が今後機能する
+
+### 動作確認
+- `npx tsc --noEmit` クリーン
+- `npm run build` 成功
+- `npm run scan` で `index.json` を再生成 → 524 プロジェクト、`storage_cwd` フィールドが全件に出力、32 件で `path !== storage_cwd`
+- LaunchAgent 再起動後、live `GET /api/index` でも target session 42a066ef-... が `storage_cwd = /Users/yuyamochizuki` を返すことを確認
+
 ## v0.1.0 — 2026-05-13
 
 First public release. Local-first dashboard for Claude Code & Codex CLI sessions.
