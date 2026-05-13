@@ -99,13 +99,13 @@ Writes are restricted to `127.0.0.1` and (when the `Origin` header is present) t
 ### macOS (LaunchAgent)
 
 ```bash
-cp LaunchAgents/com.zidai.ai-coding-tracker.plist.example \
-   ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
+cp LaunchAgents/com.aict.ai-coding-tracker.plist.example \
+   ~/Library/LaunchAgents/com.aict.ai-coding-tracker.plist
 
 # Replace every __REPLACE_*__ placeholder with values for your machine
-vi ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
+vi ~/Library/LaunchAgents/com.aict.ai-coding-tracker.plist
 
-launchctl load ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
+launchctl load ~/Library/LaunchAgents/com.aict.ai-coding-tracker.plist
 
 # Status / port / logs
 launchctl list | grep ai-coding-tracker
@@ -113,7 +113,7 @@ lsof -nP -iTCP:5180 -sTCP:LISTEN
 tail -f /tmp/ai-coding-tracker.log /tmp/ai-coding-tracker.error.log
 
 # Stop
-launchctl unload ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
+launchctl unload ~/Library/LaunchAgents/com.aict.ai-coding-tracker.plist
 ```
 
 ### Linux (systemd --user)
@@ -223,7 +223,7 @@ npm run dev    # http://127.0.0.1:5180/
 
 ### LaunchAgent / systemd
 
-`LaunchAgents/com.zidai.ai-coding-tracker.plist.example`（macOS）、`systemd/ai-coding-tracker.service.example`（Linux）をテンプレートとして同梱しています。`__REPLACE_*__` placeholder を自分の環境に書き換えてロードしてください。
+`LaunchAgents/com.aict.ai-coding-tracker.plist.example`（macOS）、`systemd/ai-coding-tracker.service.example`（Linux）をテンプレートとして同梱しています。`__REPLACE_*__` placeholder を自分の環境に書き換えてロードしてください。
 
 ### 安全性
 

@@ -4,3 +4,9 @@ dist
 .DS_Store
 .vscode
 .idea
+
+# Local-only development notes (per the maintainer's personal workflow).
+# Conversation logs and CLAUDE.md drafts live on disk but are never committed.
+conversations/
+CLAUDE.md
+.claude/

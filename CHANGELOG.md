@@ -22,7 +22,7 @@ OSS 配布に向けた整備と、英語圏のユーザーが触れるよう英�
   - `vscode://file{path}` / `cursor://file{path}` の path を `encodeURI()`
   - icon-only ボタン（theme toggle / 再スキャン / 言語切替 / Edit pencil / Close / CopyableCommand / ShortcutHints）に `aria-label` 追加
 - **デプロイテンプレート**
-  - `LaunchAgents/com.zidai.ai-coding-tracker.plist.example` の個人情報を `__REPLACE_*__` placeholder 化
+  - `LaunchAgents/com.aict.ai-coding-tracker.plist.example` の個人情報を `__REPLACE_*__` placeholder 化
   - `systemd/ai-coding-tracker.service.example` を新規追加（Linux ユーザー向け）
 - **README 全面書き直し**: 英語ファースト + 末尾に日本語版。Features / Requirements / Install / Configuration / API / Service / Data / Safety / Known limitations / License を整理
 
@@ -75,7 +75,7 @@ Codex CLI でコードレビューしてもらい、Critical / Important の指�
   - GitHub: yuuuzooo/claude-pjx → yuuuzooo/ai-coding-tracker（Private 維持）
   - ローカルディレクトリ: `~/Desktop/000_Claude Code/dev/ai-coding-tracker/`
   - ランタイムデータ: `~/.ai-coding-tracker/{index.json, overrides.json}`（既存データを mv で移行）
-  - LaunchAgent: `com.zidai.ai-coding-tracker`（旧 plist は削除、新 plist を `~/Library/LaunchAgents/` にロード）
+  - LaunchAgent: `com.aict.ai-coding-tracker`（旧 plist は削除、新 plist を `~/Library/LaunchAgents/` にロード）
   - ログ: `/tmp/ai-coding-tracker.log` / `/tmp/ai-coding-tracker.error.log`
   - ブラウザ UI 表示: サイドバーの見出しを「AI Coding Tracker」に変更
 - `package.json` の name、`vite.config.ts` の plugin 名、`localStorage` キー（`ai-coding-tracker:theme`）も追従
@@ -84,9 +84,9 @@ Codex CLI でコードレビューしてもらい、Critical / Important の指�
 
 ## 2026-05-04 (2)
 ### 変更内容
-- `LaunchAgents/com.zidai.ai-coding-tracker.plist` テンプレートを追加（macOS 常駐用）
+- `LaunchAgents/com.aict.ai-coding-tracker.plist` テンプレートを追加（macOS 常駐用）
 - README の LaunchAgent セクションをテンプレート参照ベースに書き換え（コピー → パス調整 → load の3手順）
-- `~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist` を実体化して `launchctl load`、ポート 5180 で常駐確認済み
+- `~/Library/LaunchAgents/com.aict.ai-coding-tracker.plist` を実体化して `launchctl load`、ポート 5180 で常駐確認済み
 - 効果: Claude Code セッション終了後・Mac 再起動後も `http://127.0.0.1:5180/` のブックマークから即アクセス可能
 
 ## 2026-05-04

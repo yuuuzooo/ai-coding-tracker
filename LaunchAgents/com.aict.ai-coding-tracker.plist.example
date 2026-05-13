@@ -4,8 +4,8 @@
 
   Setup:
     1. Copy this file to ~/Library/LaunchAgents/ and drop the `.example` suffix:
-         cp LaunchAgents/com.zidai.ai-coding-tracker.plist.example \
-            ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
+         cp LaunchAgents/com.aict.ai-coding-tracker.plist.example \
+            ~/Library/LaunchAgents/com.aict.ai-coding-tracker.plist
     2. Replace every `__REPLACE_*__` placeholder below with the values for
        your machine:
          - __REPLACE_NODE_PATH__       : output of `which node`
@@ -16,10 +16,10 @@
          - __REPLACE_PATH_ENV__       : value for $PATH (include node's bin dir)
          - __REPLACE_HOME__           : your home directory (output of `echo $HOME`)
     3. Load it:
-         launchctl load ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
+         launchctl load ~/Library/LaunchAgents/com.aict.ai-coding-tracker.plist
 
   Useful commands:
-    Stop:   launchctl unload ~/Library/LaunchAgents/com.zidai.ai-coding-tracker.plist
+    Stop:   launchctl unload ~/Library/LaunchAgents/com.aict.ai-coding-tracker.plist
     Status: launchctl list | grep ai-coding-tracker
     Port:   lsof -nP -iTCP:5180 -sTCP:LISTEN
     Logs:   tail -f /tmp/ai-coding-tracker.log /tmp/ai-coding-tracker.error.log
@@ -28,7 +28,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.zidai.ai-coding-tracker</string>
+    <string>com.aict.ai-coding-tracker</string>
 
     <key>ProgramArguments</key>
     <array>
