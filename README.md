@@ -1,5 +1,9 @@
 # AI Coding Tracker
 
+[![CI](https://github.com/yuuuzooo/ai-coding-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/yuuuzooo/ai-coding-tracker/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-18.17%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+
 A local-first web dashboard that auto-discovers your **Claude Code** and **Codex CLI** sessions, surfaces the last interaction and a "what's next" memo, and helps you revive abandoned projects.
 
 > Read-only on your session history. The only files this tool writes to are inside `~/.ai-coding-tracker/`.
