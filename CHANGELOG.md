@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## v0.1.0 — 2026-05-13
+
+First public release. Local-first dashboard for Claude Code & Codex CLI sessions.
+
+**Highlights**
+
+- Auto-discover Claude Code (`~/.claude/projects/*/<sessionId>.jsonl`) and Codex CLI (`~/.codex/sessions/.../rollout-*.jsonl`) sessions, one row per session.
+- Status pipeline (active / paused / abandoned / done / idea) + A/B/C priority + manual notes, aliases, hide toggle.
+- Sidebar filters, date buckets, bulk actions, light/dark theme.
+- English & Japanese UI with auto-detect + toggle.
+- Read-only on session history; all writes confined to `~/.ai-coding-tracker/`.
+- macOS LaunchAgent and Linux systemd templates included.
+- Environment-variable overrides for non-standard install paths (`AICT_CLAUDE_PROJECTS_DIR` etc.).
+
+**For the development history that led to this release see the entries below.**
+
+## 2026-05-13 (3) — OSS launch prep
+### 変更内容
+- **LICENSE** が無かったので MIT を追加（既出だが念のため）
+- LaunchAgent ラベルを `com.zidai.*` → `com.aict.*` に汎用化（既存ユーザの実環境 plist は据え置き、テンプレと README のみ）
+- `conversations/` / `CLAUDE.md` / `.claude/` を `.gitignore` に追加し、ローカル開発メモが今後コミットされない構造に。過去履歴からも `git filter-repo` で除去（force push 済み）
+- **GitHub Actions CI**: `.github/workflows/ci.yml` で Node 18/20/22 上で `typecheck + build` を PR / push のたびに自動実行
+- **Issue / PR テンプレート**: bug.yml / feature.yml / config.yml / pull_request_template.md
+- **CONTRIBUTING.md**: 開発セットアップ・コーディングスタイル・安全性制約（never write to `~/.claude/`, etc.）・PR ガイド
+- **Vite 6.4.2 / @vitejs/plugin-react 5.x** にアップグレード — esbuild dev-server 経由リクエスト脆弱性 `GHSA-67mh-4wv8-2f99` を解消（`npm audit` クリーン）
+
 ## 2026-05-13 (2)
 ### 依頼内容
 OSS 配布に向けた整備と、英語圏のユーザーが触れるよう英語対応する。
