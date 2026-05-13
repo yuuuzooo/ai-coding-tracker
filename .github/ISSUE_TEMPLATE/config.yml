@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question / discussion
+    url: https://github.com/yuuuzooo/ai-coding-tracker/discussions
+    about: For general questions or ideas, please open a Discussion instead of an issue.

@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest a new capability or improvement.
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the use case, not the proposed solution.
+      placeholder: |
+        I want to ... but right now ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed solution (optional)
+      description: If you have an idea, sketch it here. Mockups, links, examples welcome.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: |
+        I considered X but ...
+    validations:
+      required: false
