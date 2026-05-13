@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<!--
+  Windows Task Scheduler template for keeping ai-coding-tracker running.
+
+  Setup (PowerShell, run as your normal user, NOT admin):
+    1. Edit this XML and replace every __REPLACE_*__ placeholder:
+         __REPLACE_USER__         : your Windows username (output of `whoami` after the backslash)
+         __REPLACE_PROJECT_DIR__  : absolute path to the cloned repo, e.g. C:\Users\You\code\ai-coding-tracker
+         __REPLACE_NPM_CMD__      : absolute path to npm.cmd. Find with `where.exe npm` and pick the .cmd entry,
+                                    e.g. C:\Program Files\nodejs\npm.cmd
+
+    2. Import the task:
+         schtasks /Create /XML "ai-coding-tracker.xml" /TN "AICodingTracker"
+
+    3. Start it now (it will also auto-start at every logon):
+         schtasks /Run /TN "AICodingTracker"
+
+  Useful commands:
+    schtasks /Query /TN "AICodingTracker" /V /FO LIST
+    schtasks /End   /TN "AICodingTracker"        # stop
+    schtasks /Delete /TN "AICodingTracker" /F    # uninstall
+
+  Log files: %TEMP%\ai-coding-tracker.log / .error.log
+-->
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>AI Coding Tracker — local dashboard for Claude Code / Codex CLI sessions</Description>
+    <URI>\AICodingTracker</URI>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <UserId>__REPLACE_USER__</UserId>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>__REPLACE_USER__</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>7</Priority>
+    <RestartOnFailure>
+      <Interval>PT1M</Interval>
+      <Count>5</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>cmd.exe</Command>
+      <Arguments>/c "&quot;__REPLACE_NPM_CMD__&quot; run dev -- --port 5180 --strictPort &gt; &quot;%TEMP%\ai-coding-tracker.log&quot; 2&gt; &quot;%TEMP%\ai-coding-tracker.error.log&quot;"</Arguments>
+      <WorkingDirectory>__REPLACE_PROJECT_DIR__</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>

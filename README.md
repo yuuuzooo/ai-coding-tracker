@@ -140,7 +140,58 @@ journalctl --user -u ai-coding-tracker -f
 
 ### Windows
 
-No template ships yet. Run `npm run dev` manually, or use **Task Scheduler** / **PM2** to keep it alive. PRs welcome.
+Two ways to keep the dashboard running in the background. Both ship as templates; pick whichever fits your workflow. **(Untested on a Windows machine — early users, please [file an issue](https://github.com/yuuuzooo/ai-coding-tracker/issues) if anything trips up.)**
+
+#### Option 1: PM2 (cross-platform, recommended)
+
+[PM2](https://pm2.keymetrics.io/) is a Node.js process manager that handles auto-restart and boot-time startup.
+
+```powershell
+# 1. Install PM2 globally
+npm install -g pm2
+
+# 2. Start the tracker (from the cloned repo root)
+pm2 start pm2.config.cjs
+
+# 3. Persist the running process list and enable auto-start at login
+pm2 save
+npm install -g pm2-windows-startup
+pm2-startup install
+```
+
+Useful commands:
+
+```powershell
+pm2 status
+pm2 logs ai-coding-tracker
+pm2 restart ai-coding-tracker
+pm2 stop ai-coding-tracker
+pm2 delete ai-coding-tracker
+```
+
+#### Option 2: Windows Task Scheduler (no extra tools)
+
+```powershell
+# 1. Open windows\ai-coding-tracker.xml in a text editor and replace
+#    every __REPLACE_*__ placeholder:
+#      __REPLACE_USER__         e.g. DESKTOP-ABC\You
+#      __REPLACE_PROJECT_DIR__  absolute path of the cloned repo
+#      __REPLACE_NPM_CMD__      output of `where.exe npm` (the .cmd path)
+
+# 2. Import and start the task
+schtasks /Create /XML "windows\ai-coding-tracker.xml" /TN "AICodingTracker"
+schtasks /Run /TN "AICodingTracker"
+
+# 3. Verify
+schtasks /Query /TN "AICodingTracker" /V /FO LIST
+# Then open http://127.0.0.1:5180/
+
+# Stop / uninstall
+schtasks /End /TN "AICodingTracker"
+schtasks /Delete /TN "AICodingTracker" /F
+```
+
+Logs go to `%TEMP%\ai-coding-tracker.log` and `%TEMP%\ai-coding-tracker.error.log`.
 
 ## Data layout
 
