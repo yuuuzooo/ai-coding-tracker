@@ -225,9 +225,26 @@ function stripSlashCommandWrappers(text: string): string {
 async function* readLines(file: string): AsyncGenerator<string> {
   const stream = fs.createReadStream(file, { encoding: 'utf8' });
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
-  for await (const line of rl) {
-    if (line.trim()) yield line;
+  // A read syscall on the underlying ReadStream can fail transiently (observed
+  // errno -11 / EDEADLK while Spotlight reindexes ~/.claude). Such failures are
+  // emitted as an 'error' event on the *stream*; without a listener Node
+  // rethrows it as an uncaught exception and crashes the whole server. Capture
+  // it, stop iteration, and rethrow inside this generator so the per-file
+  // try/catch in the callers can skip the bad file instead.
+  let streamErr: Error | null = null;
+  stream.on('error', (e: Error) => {
+    streamErr = e;
+    rl.close();
+  });
+  try {
+    for await (const line of rl) {
+      if (line.trim()) yield line;
+    }
+  } finally {
+    rl.close();
+    stream.destroy();
   }
+  if (streamErr) throw streamErr;
 }
 
 async function scanClaudeCodeSessionFile(file: string, dirName: string): Promise<Acc | null> {
@@ -337,13 +354,17 @@ async function scanClaudeCode(): Promise<Acc[]> {
 async function readCodexThreadNames(): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   if (!fs.existsSync(CODEX_SESSION_INDEX)) return out;
-  for await (const line of readLines(CODEX_SESSION_INDEX)) {
-    try {
-      const rec = JSON.parse(line);
-      if (rec?.id && rec?.thread_name) out.set(rec.id, rec.thread_name);
-    } catch {
-      /* skip */
+  try {
+    for await (const line of readLines(CODEX_SESSION_INDEX)) {
+      try {
+        const rec = JSON.parse(line);
+        if (rec?.id && rec?.thread_name) out.set(rec.id, rec.thread_name);
+      } catch {
+        /* skip */
+      }
     }
+  } catch (err) {
+    console.error(`[scanner] failed to read codex session index:`, (err as Error).message);
   }
   return out;
 }
