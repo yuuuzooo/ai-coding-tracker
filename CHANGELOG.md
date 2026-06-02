@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-06-02 — ファイル読み込み中のEDEADLK(-11)によるクラッシュループを修正
+### 依頼内容
+http://127.0.0.1:5180/ を開くと「Failed to fetch」が表示され、全件数が 0 のままデータを取得できない、というエラー報告。
+
+### やり取りの経緯
+- LaunchAgent は `state = running` だが `runs = 14`・`last exit code = 1` で、起動→クラッシュ→KeepAlive 再起動を高速ループしていた。
+- `/tmp/ai-coding-tracker.error.log` に `Unknown system error -11`（EDEADLK / Resource deadlock avoided）が連続出力。read syscall 中の `fs.createReadStream` の 'error' イベントが未捕捉でプロセス全体を即死させていた。
+- 2026-05-29 の記録（Spotlight 再インデックス中に EDEADLK が発生する現象）と同型。今回は一過性ではなくコードの堅牢性不足が露呈。
+
+### 変更内容
+- `server/scanner.ts` `readLines`: ReadStream の 'error' を捕捉して `rl.close()`、ジェネレータ末尾で再throw。呼び出し側の per-file try/catch が壊れたファイルをスキップできるようにした（ストリームの 'error' イベントは try/catch では捕まえられないのが直接原因）。
+- `server/scanner.ts` `readCodexThreadNames`: for-await ループを try/catch で保護。
+- `vite.config.ts` `configureServer`: 常駐サーバ向けに `uncaughtException` / `unhandledRejection` のセーフティネットを追加（ログのみ残して稼働継続）。
+- LaunchAgent を bootout → bootstrap で再起動し、`runs = 1`・`never exited`・エラーログ更新停止を確認。`npx tsc --noEmit` パス。
+
 ## 2026-05-13 (4) — Resume コマンドのパス選定を保存先ベースに修正
 ### 依頼内容
 ダッシュボードの「続きから再開」コマンドをコピペしても `No conversation found with session ID: ...` で再開できないケースがある。`claude --resume <id>` が探すのは「セッション起動時の cwd に対応する `~/.claude/projects/<encoded>/` 配下のみ」であるため、起動 cwd ≠ 主たる作業 cwd のセッション（例: `~` で `claude` を起動して後から `cd プロジェクト` したもの）でコピペが失敗していた。
