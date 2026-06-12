@@ -1,4 +1,6 @@
 node_modules
+node_modules.nosync
+node_modules.__old_evicted
 dist
 *.tsbuildinfo
 .DS_Store

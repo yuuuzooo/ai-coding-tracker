@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-06-12 — iCloud退避（dataless化）による Internal Server Error を修正、node_modules を同期対象外に
+### 依頼内容
+http://127.0.0.1:5180/ を開くと「Internal Server Error / Unknown system error -11, read」（viteIndexHtmlMiddleware の index.html 読み取り失敗）が表示され、常時起動サイトが開かない。修正依頼。
+
+### やり取りの経緯
+- 2026-05-29 / 2026-06-02 と同型の EDEADLK(-11) だが、今回は根本原因を特定：**ディスクが98%使用（残り10GB）のため、macOS「Macのストレージを最適化」が iCloud 同期下の Desktop からファイル実体を退避（dataless化）**していた。プロジェクト内 13,420 ファイル（node_modules ほぼ全部 + vite.config.ts + server/ + src/ 全部）が dataless 状態。
+- dataless ファイルの read が EDEADLK(-11) を返し、index.html 配信・vite.config.ts 再読込・esbuild のソース読込がすべて失敗。プロセス再起動では直らない（killすると LaunchAgent `com.zidai.ai-coding-tracker` の KeepAlive が即respawnするが同じエラー）。
+- `brctl download` / 並列 cat による一括マテリアライズを試行したが、ディスク逼迫下では**ダウンロードと再退避のいたちごっこ**になり進捗せず（13,420→13,404→13,408件と増減）。方針転換。
+- node_modules 内に `fp 2.mjs` 等の「 2」付き重複ファイルが多数あり、過去の iCloud 同期コンフリクトの痕跡も確認。
+
+### 変更内容
+- ソースファイル等（node_modules 以外の dataless 298件）: `cp -p f f.tmp && mv f.tmp f` のコピー&置換でローカル実体化（失敗0件）
+- node_modules: 旧ディレクトリを `node_modules.__old_evicted/` にリネーム退避（dataless なのでディスク消費ほぼゼロ。Finder から削除可）→ `npm install` で223パッケージを新規構築 → **`node_modules.nosync/` にリネームし `node_modules` シンボリックリンクを作成**。`*.nosync` は iCloud 同期対象外のため、今後 node_modules が退避されることはない
+  - 注意: 次回 `npm install` 実行時に npm がシンボリックリンクを実ディレクトリに置き換えることがある（今回も一度発生）。その場合は `mv node_modules node_modules.nosync && ln -s node_modules.nosync node_modules` を再適用
+- `.gitignore`: `node_modules.nosync` / `node_modules.__old_evicted` を追加
+- LaunchAgent を unload → load で再起動し、Vite ready（3094ms）・ページ表示・データ311件読込・コンソールエラー0 を Playwright で確認
+- **残課題（ユーザー対応）**: ディスク残量10GBが根本原因。容量を空けない限り、ソースファイル（src/ server/ 等）は今後も退避されうる。恒久対策は (1) ディスク容量の確保、(2) Finder でプロジェクトフォルダを「ダウンロードを保持」に固定、(3) システム設定で「Macのストレージを最適化」をオフ、のいずれか
+
 ## 2026-06-02 — ファイル読み込み中のEDEADLK(-11)によるクラッシュループを修正
 ### 依頼内容
 http://127.0.0.1:5180/ を開くと「Failed to fetch」が表示され、全件数が 0 のままデータを取得できない、というエラー報告。
