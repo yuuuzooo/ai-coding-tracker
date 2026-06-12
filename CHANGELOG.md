@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-06-12 (2) — プロジェクトを ~/dev/ へ移設（iCloud同期領域から完全離脱）
+### 依頼内容
+同日朝の修正（node_modules.nosync化）後も、夕方に再び「Unknown system error -11」（loadAndTransform でのソース読み取り失敗）が発生しサイトが動かない。恒久修正の依頼。
+
+### やり取りの経緯
+- nosync化した node_modules は退避ゼロで保護が機能していたが、**保護対象外のソースファイル（src/・tsconfig等）162件が再退避**され、Viteのtransformが失敗していた
+- さらにiCloudが「 2」付きコンフリクト複製（src/components/Toolbar 2.tsx 等14件）を生成し、node_modulesシンボリックリンクを「node_modules 2」にリネームするなど、Desktop配下での開発が構造的に成立しない状態と判明
+- 同日の golf-range-finder 移設（別セッション・ユーザー承認済み）で確立した恒久対策「アクティブなnodeプロジェクトは iCloud対象外の ~/dev/ に置く」を本プロジェクトにも適用
+
+### 変更内容
+- GitHub（origin/main, 536491d）から `/Users/yuyamochizuki/dev/ai-coding-tracker` へクリーンに git clone（iCloudコンフリクト残骸なしの状態で再出発）
+- gitignore対象のローカル限定ファイル（conversations/ 3件）を旧ディレクトリからコピー
+- `npm install` で149パッケージ構築（~/dev はiCloud対象外なので nosync 不要の通常構成）
+- LaunchAgent `com.zidai.ai-coding-tracker` の WorkingDirectory を `/Users/yuyamochizuki/dev/ai-coding-tracker` に変更し reload。Vite ready（696ms）、Playwright でページ表示・データ321/1010件読込・コンソールエラー0を確認
+- 旧Desktopディレクトリは `_移設済み削除可_ai-coding-tracker` にリネーム（不要になったらFinderから削除可）
+- 環境面: ユーザーがディスク容量を確保（残10GB→73GB）し、退避圧力自体も解消方向
+
 ## 2026-06-12 — iCloud退避（dataless化）による Internal Server Error を修正、node_modules を同期対象外に
 ### 依頼内容
 http://127.0.0.1:5180/ を開くと「Internal Server Error / Unknown system error -11, read」（viteIndexHtmlMiddleware の index.html 読み取り失敗）が表示され、常時起動サイトが開かない。修正依頼。
